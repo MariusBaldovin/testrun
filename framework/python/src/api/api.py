@@ -395,12 +395,18 @@ class Api:
 
     if "mac_addr" not in body_json or "timestamp" not in body_json:
       response.status_code = 400
-      return self._generate_msg(False, "Invalid request received")
-
+      return self._generate_msg(False, "Missing mac address or timestamp")
+    
     mac_addr = body_json.get("mac_addr").lower()
     timestamp = body_json.get("timestamp")
-    parsed_timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-    timestamp_formatted = parsed_timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+
+    try:
+      parsed_timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+      timestamp_formatted = parsed_timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+
+    except ValueError:
+      response.status_code = 400
+      return self._generate_msg(False, "Timestamp format is incorrect")
 
     # Get device from MAC address
     device = self._session.get_device(mac_addr)
@@ -577,6 +583,12 @@ class Api:
 
   async def get_report(self, response: Response, device_name, timestamp):
     device = self._session.get_device_by_name(device_name)
+
+    # If the device not found
+    if device is None:
+      LOGGER.info("Device not found, returning 404")
+      response.status_code = 404
+      return self._generate_msg(False, "Device not found")
 
     # 1.3 file path
     file_path = os.path.join(

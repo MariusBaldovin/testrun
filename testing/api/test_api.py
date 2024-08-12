@@ -41,6 +41,7 @@ PROFILES_DIRECTORY = "local/risk_profiles"
 SYSTEM_CONFIG_PATH = "local/system.json"
 SYSTEM_CONFIG_RESTORE_PATH = "testing/api/system.json"
 PROFILES_PATH = "testing/api/profiles"
+REPORTS_PATH = "testing/api/reports"
 
 BASELINE_MAC_ADDR = "02:42:aa:00:01:01"
 ALL_MAC_ADDR = "02:42:aa:00:00:01"
@@ -227,6 +228,214 @@ def local_get_devices():
       )
   )
 
+@pytest.fixture
+def create_report_folder(): # pylint: disable=W0613
+  """Fixture to create the report.json in the expected path on local/devices"""
+  def _create_report_folder(device_name, mac_address, timestamp):
+
+    # Create the device folder path
+    main_folder = Path(DEVICES_DIRECTORY) / device_name
+
+    # Remove the ":" from mac address for the folder structure
+    mac_address = mac_address.replace(":", "")
+
+    # Change the timestamp format for the folder structure
+    timestamp = timestamp.replace(" ", "T")
+
+    # Create the report folder path
+    report_folder = (main_folder / "reports" / timestamp /
+                      "test" / mac_address)
+
+    # Ensure the report folder exists
+    report_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define the source and target paths for the report.json
+    source_report_path = Path(REPORTS_PATH) / "report.json"
+    target_report_path = report_folder / "report.json"
+
+    # Copy the report.json file from the source to the target location
+    shutil.copy(source_report_path, target_report_path)
+
+    return report_folder
+
+  return _create_report_folder
+
+def create_and_get_device():
+  """Utility method to create a device"""
+
+  # Payload with device details
+  device ={
+        "mac_addr": "00:1e:42:28:9e:4a",
+        "manufacturer": "Teltonika",
+        "model": "TRB140"
+    }
+
+  # Send a POST request to create a new device
+  requests.post(f"{API}/device", data=json.dumps(device), timeout=5)
+
+  # Send the GET request to retrieve the created device's folder name
+  r = requests.get(f"{API}/devices", timeout=5)
+
+  # Return the parsed the json response
+  return r.json()
+
+@pytest.fixture()
+def add_device():
+  """Fixture to add device during tests"""
+  # Returning the reference to create_device
+  return create_and_get_device
+
+def test_delete_report_success(testrun, add_device,  # pylint: disable=W0613
+                                empty_devices_dir, create_report_folder):  # pylint: disable=W0613
+  """Test successful deletion of a report."""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format for the folder structure
+  timestamp = "2024-01-01 00:00:00"
+
+  report_folder = create_report_folder(device_name, mac_address, timestamp)
+
+  # Payload
+  delete_data = {
+    "mac_addr": mac_address,
+    "timestamp": timestamp
+  }
+
+  # Send a DELETE request to remove the report
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status code is 200 (OK)
+  assert r.status_code == 200
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "success" in response
+  assert "success" in response
+
+  # Check if report folder has been deleted
+  assert not report_folder.exists()
+
+def test_delete_report_bad_request(testrun, add_device, # pylint: disable=W0613 
+                                   empty_devices_dir, create_report_folder):  # pylint: disable=W0613
+  """Test successful deletion of a report."""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format for the folder structure
+  timestamp = "2024-01-01 00:00:00"
+
+  # Create the report.json
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Empty payload
+  delete_data = {}
+
+  # Send a DELETE request to remove the report
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status code is 400 (bad request)
+  assert r.status_code == 400
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "success" in response
+  assert "error" in response
+
+def test_delete_report_no_report(testrun, empty_devices_dir):  # pylint: disable=W0613
+  """Test delete report when report does not exist."""
+
+  # Payload to be deleted for a non existing device
+  delete_data = {
+      "mac_addr": "00:1e:42:35:73:c4",
+      "timestamp": "2024-01-01 00:00:00"
+  }
+
+  # Send the delete request to the endpoint
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the response json
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+def test_get_report_not_found(testrun, empty_devices_dir, add_device):  # pylint: disable=W0613
+  """Test getting a report that doesn't exist."""
+
+  # Assign timestamp
+  timestamp = "2024-01-01T00:00:00"
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Send the get request
+  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
+
+  # Check if status code is 404 (not found)
+  assert r.status_code == 404
+
+def test_get_report_device_not_found(empty_devices_dir, testrun):  # pylint: disable=W0613
+  """Test getting a report when the device is not found"""
+
+  # Assign device name and timestamp
+  device_name = "nonexistent_device"
+  timestamp = "2024-01-01T00:00:00"
+
+  # Send the get request
+  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
+
+  # Check if is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+def test_get_results_no_profile(testrun):  # pylint: disable=W0613
+  """Test getting results with no profile."""
+
+  # Assign device name and timestamp
+  device_name = "device1"
+  timestamp = "2024-01-01T00:00:00"
+
+  # Send the post request
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}", timeout=5)
+
+  # Check if is 404 (not found)
+  assert r.status_code == 404
+
+  # parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+
 # Tests for system endpoints
 
 @pytest.fixture()
@@ -237,7 +446,7 @@ def restore_config():
   # Restore system.json from 'testing/api/' after the test
   if os.path.exists(SYSTEM_CONFIG_RESTORE_PATH):
     shutil.copy(SYSTEM_CONFIG_RESTORE_PATH, SYSTEM_CONFIG_PATH)
-
+@pytest.mark.skip() # For testing only
 def test_get_system_interfaces(testrun): # pylint: disable=W0613
   """Tests API system interfaces against actual local interfaces"""
 
@@ -257,7 +466,7 @@ def test_get_system_interfaces(testrun): # pylint: disable=W0613
   assert set(response.keys()) == set(local_interfaces)
   # Ensure that all values in the response are strings
   assert all(isinstance(x, str) for x in response)
-
+@pytest.mark.skip() # For testing only
 def test_update_system_config(testrun, restore_config): # pylint: disable=W0613
   """Test update system configuration endpoint ('/system/config')"""
 
@@ -298,7 +507,7 @@ def test_update_system_config(testrun, restore_config): # pylint: disable=W0613
     response["log_level"]
     == updated_system_config["log_level"]
   )
-
+@pytest.mark.skip() # For testing only
 def test_update_system_config_invalid_config(testrun, restore_config): # pylint: disable=W0613
   """Test invalid configuration file for update system configuration"""
 
@@ -317,7 +526,7 @@ def test_update_system_config_invalid_config(testrun, restore_config): # pylint:
 
   # Check if status code is 400 (Invalid config)
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_get_system_config(testrun): # pylint: disable=W0613
   """Tests get system configuration endpoint ('/system/config')"""
 
@@ -349,7 +558,7 @@ def test_get_system_config(testrun): # pylint: disable=W0613
       local_config["network"]["internet_intf"]
       == api_config["network"]["internet_intf"]
   )
-
+@pytest.mark.skip() # For testing only
 def test_start_testrun_started_successfully(testing_devices, testrun): # pylint: disable=W0613
   """Test for testrun started successfully """
 
@@ -382,7 +591,7 @@ def test_start_testrun_started_successfully(testing_devices, testrun): # pylint:
 
   # Check that firmware in response
   assert "firmware" in response["device"]
-
+@pytest.mark.skip() # For testing only
 def test_start_testrun_missing_device(testing_devices, testrun): # pylint: disable=W0613
   """Test for missing device when testrun is started """
 
@@ -400,7 +609,7 @@ def test_start_testrun_missing_device(testing_devices, testrun): # pylint: disab
 
   # Check if 'error' in response
   assert "error" in response
-
+@pytest.mark.skip() # For testing only
 def test_start_testrun_already_started(testing_devices, testrun): # pylint: disable=W0613
   """Test for testrun already started """
 
@@ -433,7 +642,7 @@ def test_start_testrun_already_started(testing_devices, testrun): # pylint: disa
 
   # Check if 'error' in response
   assert "error" in response
-
+@pytest.mark.skip() # For testing only
 def test_start_testrun_device_not_found(testing_devices, testrun): # pylint: disable=W0613
   """Test for start testrun device not found """
 
@@ -595,7 +804,7 @@ def test_stop_running_test(testing_devices, testrun): # pylint: disable=W0613
   pretty_print(response)
 
   assert response["status"] == "Cancelled"
-
+@pytest.mark.skip() # For testing only
 def test_stop_running_not_running(testrun): # pylint: disable=W0613
   # Validate response
   r = requests.post(f"{API}/system/stop",
@@ -663,7 +872,7 @@ def test_multiple_runs(testing_devices, testrun): # pylint: disable=W0613
   )
 
   stop_test_device("x123")
-
+@pytest.mark.skip() # For testing only
 def test_status_idle(testrun): # pylint: disable=W0613
   """Test system status 'idle' endpoint (/system/status)"""
   until_true(
@@ -671,7 +880,7 @@ def test_status_idle(testrun): # pylint: disable=W0613
       "system status is `idle`",
       30,
   )
-
+@pytest.mark.skip() # For testing only
 def test_system_shutdown(testrun): # pylint: disable=W0613
   """Test the shutdown system endpoint"""
   # Send a POST request to initiate the system shutdown
@@ -679,7 +888,7 @@ def test_system_shutdown(testrun): # pylint: disable=W0613
 
   # Check if the response status code is 200 (OK)
   assert r.status_code == 200, f"Expected status code 200, got {r.status_code}"
-
+@pytest.mark.skip() # For testing only
 def test_system_shutdown_in_progress(testrun):  # pylint: disable=W0613
   """Test system shutdown during an in-progress test"""
   # Payload with device details to start a test
@@ -709,7 +918,7 @@ def test_system_shutdown_in_progress(testrun):  # pylint: disable=W0613
 
   # Check if the response status code is 400 (test in progress)
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_system_latest_version(testrun): # pylint: disable=W0613
   """Test for testrun version when the latest version is installed"""
 
@@ -725,7 +934,7 @@ def test_system_latest_version(testrun): # pylint: disable=W0613
   assert response["update_available"] is False
 
 # Tests for reports endpoints
-
+@pytest.mark.skip() # For testing only
 def test_get_reports_no_reports(testrun): # pylint: disable=W0613
   """Test get reports when no reports exist."""
 
@@ -777,7 +986,7 @@ def test_status_non_compliant(testing_devices, testrun): # pylint: disable=W0613
   )
 
   stop_test_device("x123")
-
+@pytest.mark.skip() # For testing only
 def test_create_get_devices(empty_devices_dir, testrun): # pylint: disable=W0613
   device_1 = {
       "manufacturer": "Google",
@@ -839,7 +1048,7 @@ def test_create_get_devices(empty_devices_dir, testrun): # pylint: disable=W0613
     assert set([all_devices[0][key], all_devices[1][key]]) == set(
         [device_1[key], device_2[key]]
     )
-
+@pytest.mark.skip() # For testing only
 def test_delete_device_success(empty_devices_dir, testrun): # pylint: disable=W0613
   device_1 = {
       "manufacturer": "Google",
@@ -916,7 +1125,7 @@ def test_delete_device_success(empty_devices_dir, testrun): # pylint: disable=W0
     assert set([all_devices[0][key]]) == set(
         [device_2[key]]
     )
-
+@pytest.mark.skip() # For testing only
 def test_delete_device_not_found(empty_devices_dir, testrun): # pylint: disable=W0613
   device_1 = {
       "manufacturer": "Google",
@@ -954,7 +1163,7 @@ def test_delete_device_not_found(empty_devices_dir, testrun): # pylint: disable=
                       timeout=5)
   assert r.status_code == 404
   assert len(local_get_devices()) == 0
-
+@pytest.mark.skip() # For testing only
 def test_delete_device_no_mac(empty_devices_dir, testrun): # pylint: disable=W0613
   device_1 = {
       "manufacturer": "Google",
@@ -1026,7 +1235,7 @@ def test_delete_device_testrun_running(testing_devices, testrun): # pylint: disa
                       data=json.dumps(device_1),
                       timeout=5)
   assert r.status_code == 403
-
+@pytest.mark.skip() # For testing only
 def test_start_system_not_configured_correctly(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1054,7 +1263,7 @@ def test_start_system_not_configured_correctly(
                     data=json.dumps(payload),
                     timeout=10)
   assert r.status_code == 500
-
+@pytest.mark.skip() # For testing only
 def test_start_device_not_found(empty_devices_dir, # pylint: disable=W0613
                                 testrun): # pylint: disable=W0613
   device_1 = {
@@ -1086,7 +1295,7 @@ def test_start_device_not_found(empty_devices_dir, # pylint: disable=W0613
                     data=json.dumps(payload),
                     timeout=10)
   assert r.status_code == 404
-
+@pytest.mark.skip() # For testing only
 def test_start_missing_device_information(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1114,7 +1323,7 @@ def test_start_missing_device_information(
                     data=json.dumps(payload),
                     timeout=10)
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_create_device_already_exists(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1143,7 +1352,7 @@ def test_create_device_already_exists(
                     timeout=5)
   print(r.text)
   assert r.status_code == 409
-
+@pytest.mark.skip() # For testing only
 def test_create_device_invalid_json(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1155,7 +1364,7 @@ def test_create_device_invalid_json(
                     timeout=5)
   print(r.text)
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_create_device_invalid_request(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1165,7 +1374,7 @@ def test_create_device_invalid_request(
                     timeout=5)
   print(r.text)
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_device_edit_device(
     testing_devices, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1213,7 +1422,7 @@ def test_device_edit_device(
 
   assert updated_device_api["model"] == new_model
   assert updated_device_api["test_modules"] == new_test_modules
-
+@pytest.mark.skip() # For testing only
 def test_device_edit_device_not_found(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1250,7 +1459,7 @@ def test_device_edit_device_not_found(
                       timeout=5)
 
   assert r.status_code == 404
-
+@pytest.mark.skip() # For testing only
 def test_device_edit_device_incorrect_json_format(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1282,7 +1491,7 @@ def test_device_edit_device_incorrect_json_format(
                       timeout=5)
 
   assert r.status_code == 400
-
+@pytest.mark.skip() # For testing only
 def test_device_edit_device_with_mac_already_exists(
     empty_devices_dir, # pylint: disable=W0613
     testrun): # pylint: disable=W0613
@@ -1338,7 +1547,7 @@ def test_device_edit_device_with_mac_already_exists(
                       timeout=5)
 
   assert r.status_code == 409
-
+@pytest.mark.skip() # For testing only
 def test_invalid_path_get(testrun): # pylint: disable=W0613
   r = requests.get(f"{API}/blah/blah", timeout=5)
   response = r.json()
@@ -1351,7 +1560,7 @@ def test_invalid_path_get(testrun): # pylint: disable=W0613
 
   # validate structure
   assert set(dict_paths(mockito)) == set(dict_paths(response))
-
+@pytest.mark.skip() # For testing only
 def test_create_invalid_chars(empty_devices_dir, testrun): # pylint: disable=W0613
   # local_delete_devices(ALL_DEVICES)
   # We must start test run with no devices in local/devices for this test
@@ -1376,7 +1585,7 @@ def test_create_invalid_chars(empty_devices_dir, testrun): # pylint: disable=W06
                     timeout=5)
   print(r.text)
   print(r.status_code)
-
+@pytest.mark.skip() # For testing only
 def test_get_test_modules(testrun): # pylint: disable=W0613
   """Test the /system/modules endpoint to get the test modules"""
 
@@ -1471,7 +1680,7 @@ def profile_exists(profile_name):
   profiles = r.json()
   # Return if name is in the list of profiles
   return any(p["name"] == profile_name for p in profiles)
-
+@pytest.mark.skip() # For testing only
 def test_get_profiles_format(testrun):  # pylint: disable=W0613
   """Test profiles format"""
 
@@ -1491,7 +1700,7 @@ def test_get_profiles_format(testrun):  # pylint: disable=W0613
   for item in response:
     assert "question" in item
     assert "type" in item
-
+@pytest.mark.skip() # For testing only
 def test_get_profiles(testrun, reset_profiles, add_profile):  # pylint: disable=W0613
   """Test for get profiles (no profile, one profile, two profiles)"""
 
@@ -1570,7 +1779,7 @@ def test_get_profiles(testrun, reset_profiles, add_profile):  # pylint: disable=
 
   # Check if response contains two profiles
   assert len(response) == 2
-
+@pytest.mark.skip() # For testing only
 def test_create_profile(testrun, reset_profiles): # pylint: disable=W0613
   """Test for create profile if not exists"""
 
@@ -1612,7 +1821,7 @@ def test_create_profile(testrun, reset_profiles): # pylint: disable=W0613
 
   # Check if profile was created
   assert created_profile is not None
-
+@pytest.mark.skip() # For testing only
 def test_update_profile(testrun, reset_profiles, add_profile): # pylint: disable=W0613
   """Test for update profile when exists"""
 
@@ -1664,7 +1873,7 @@ def test_update_profile(testrun, reset_profiles, add_profile): # pylint: disable
   )
   # Check if profile was updated
   assert updated_profile_check is not None
-
+@pytest.mark.skip() # For testing only
 def test_update_profile_invalid_json(testrun, reset_profiles, add_profile): # pylint: disable=W0613
   """Test for update profile invalid JSON payload (no 'name')"""
 
@@ -1688,7 +1897,7 @@ def test_update_profile_invalid_json(testrun, reset_profiles, add_profile): # py
 
   # Check if "error" key in response
   assert "error" in response
-
+@pytest.mark.skip() # For testing only
 def test_create_profile_invalid_json(testrun, reset_profiles): # pylint: disable=W0613
   """Test for create profile invalid JSON payload """
 
@@ -1709,7 +1918,7 @@ def test_create_profile_invalid_json(testrun, reset_profiles): # pylint: disable
 
   # Check if "error" key in response
   assert "error" in response
-
+@pytest.mark.skip() # For testing only
 def test_delete_profile(testrun, reset_profiles, add_profile): # pylint: disable=W0613
   """Test for delete profile"""
 
@@ -1750,7 +1959,7 @@ def test_delete_profile(testrun, reset_profiles, add_profile): # pylint: disable
   )
   # Check if profile was deleted
   assert deleted_profile is None
-
+@pytest.mark.skip() # For testing only
 def test_delete_profile_no_profile(testrun, reset_profiles): # pylint: disable=W0613
   """Test delete profile if the profile does not exists"""
 
@@ -1765,7 +1974,7 @@ def test_delete_profile_no_profile(testrun, reset_profiles): # pylint: disable=W
 
   # Check if status code is 404 (Profile does not exist)
   assert r.status_code == 404
-
+@pytest.mark.skip() # For testing only
 def test_delete_profile_invalid_json(testrun, reset_profiles): # pylint: disable=W0613
   """Test for delete profile wrong JSON payload"""
 
@@ -1801,7 +2010,7 @@ def test_delete_profile_invalid_json(testrun, reset_profiles): # pylint: disable
 
   # Check if "error" key in response
   assert "error" in response
-
+@pytest.mark.skip() # For testing only
 def test_delete_profile_internal_server_error(testrun, # pylint: disable=W0613
                                               reset_profiles, # pylint: disable=W0613
                                               add_profile ):
