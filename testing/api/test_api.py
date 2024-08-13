@@ -111,7 +111,13 @@ def load_json(file_name, directory):
 
 @pytest.fixture
 def empty_devices_dir():
-  """ Use e,pty devices directory """
+  """ Fixture to empty devices directory """
+  # Empty the directory before the test
+  local_delete_devices(ALL_DEVICES)
+
+  yield
+
+  # Empty the directory after the test
   local_delete_devices(ALL_DEVICES)
 
 @pytest.fixture
@@ -227,214 +233,6 @@ def local_get_devices():
           "*/device_config.json"
       )
   )
-
-@pytest.fixture
-def create_report_folder(): # pylint: disable=W0613
-  """Fixture to create the report.json in the expected path on local/devices"""
-  def _create_report_folder(device_name, mac_address, timestamp):
-
-    # Create the device folder path
-    main_folder = Path(DEVICES_DIRECTORY) / device_name
-
-    # Remove the ":" from mac address for the folder structure
-    mac_address = mac_address.replace(":", "")
-
-    # Change the timestamp format for the folder structure
-    timestamp = timestamp.replace(" ", "T")
-
-    # Create the report folder path
-    report_folder = (main_folder / "reports" / timestamp /
-                      "test" / mac_address)
-
-    # Ensure the report folder exists
-    report_folder.mkdir(parents=True, exist_ok=True)
-
-    # Define the source and target paths for the report.json
-    source_report_path = Path(REPORTS_PATH) / "report.json"
-    target_report_path = report_folder / "report.json"
-
-    # Copy the report.json file from the source to the target location
-    shutil.copy(source_report_path, target_report_path)
-
-    return report_folder
-
-  return _create_report_folder
-
-def create_and_get_device():
-  """Utility method to create a device"""
-
-  # Payload with device details
-  device ={
-        "mac_addr": "00:1e:42:28:9e:4a",
-        "manufacturer": "Teltonika",
-        "model": "TRB140"
-    }
-
-  # Send a POST request to create a new device
-  requests.post(f"{API}/device", data=json.dumps(device), timeout=5)
-
-  # Send the GET request to retrieve the created device's folder name
-  r = requests.get(f"{API}/devices", timeout=5)
-
-  # Return the parsed the json response
-  return r.json()
-
-@pytest.fixture()
-def add_device():
-  """Fixture to add device during tests"""
-  # Returning the reference to create_device
-  return create_and_get_device
-
-def test_delete_report_success(testrun, add_device,  # pylint: disable=W0613
-                                empty_devices_dir, create_report_folder):  # pylint: disable=W0613
-  """Test successful deletion of a report."""
-
-  # Load a device using the add_device fixture
-  device = add_device()
-
-  # Assign the device name
-  device_name = device[0]["device_folder"]
-
-  # Assign the device name
-  mac_address = device[0]["mac_addr"]
-
-  # Assign the timestamp format for the folder structure
-  timestamp = "2024-01-01 00:00:00"
-
-  report_folder = create_report_folder(device_name, mac_address, timestamp)
-
-  # Payload
-  delete_data = {
-    "mac_addr": mac_address,
-    "timestamp": timestamp
-  }
-
-  # Send a DELETE request to remove the report
-  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
-
-  # Check if status code is 200 (OK)
-  assert r.status_code == 200
-
-  # Parse the json response
-  response = r.json()
-
-  # Check if "success" in response
-  assert "success" in response
-
-  # Check if report folder has been deleted
-  assert not report_folder.exists()
-
-def test_delete_report_bad_request(testrun, add_device, # pylint: disable=W0613 
-                                   empty_devices_dir, create_report_folder):  # pylint: disable=W0613
-  """Test successful deletion of a report."""
-
-  # Load a device using the add_device fixture
-  device = add_device()
-
-  # Assign the device name
-  device_name = device[0]["device_folder"]
-
-  # Assign the device name
-  mac_address = device[0]["mac_addr"]
-
-  # Assign the timestamp format for the folder structure
-  timestamp = "2024-01-01 00:00:00"
-
-  # Create the report.json
-  create_report_folder(device_name, mac_address, timestamp)
-
-  # Empty payload
-  delete_data = {}
-
-  # Send a DELETE request to remove the report
-  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
-
-  # Check if status code is 400 (bad request)
-  assert r.status_code == 400
-
-  # Parse the json response
-  response = r.json()
-
-  # Check if "success" in response
-  assert "error" in response
-
-def test_delete_report_no_report(testrun, empty_devices_dir):  # pylint: disable=W0613
-  """Test delete report when report does not exist."""
-
-  # Payload to be deleted for a non existing device
-  delete_data = {
-      "mac_addr": "00:1e:42:35:73:c4",
-      "timestamp": "2024-01-01 00:00:00"
-  }
-
-  # Send the delete request to the endpoint
-  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
-
-  # Check if status is 404 (not found)
-  assert r.status_code == 404
-
-  # Parse the response json
-  response = r.json()
-
-  # Check if "error" in response
-  assert "error" in response
-
-def test_get_report_not_found(testrun, empty_devices_dir, add_device):  # pylint: disable=W0613
-  """Test getting a report that doesn't exist."""
-
-  # Assign timestamp
-  timestamp = "2024-01-01T00:00:00"
-
-  # Load a device using the add_device fixture
-  device = add_device()
-
-  # Assign the device name
-  device_name = device[0]["device_folder"]
-
-  # Send the get request
-  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
-
-  # Check if status code is 404 (not found)
-  assert r.status_code == 404
-
-def test_get_report_device_not_found(empty_devices_dir, testrun):  # pylint: disable=W0613
-  """Test getting a report when the device is not found"""
-
-  # Assign device name and timestamp
-  device_name = "nonexistent_device"
-  timestamp = "2024-01-01T00:00:00"
-
-  # Send the get request
-  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
-
-  # Check if is 404 (not found)
-  assert r.status_code == 404
-
-  # Parse the json response
-  response = r.json()
-
-  # Check if "error" in response
-  assert "error" in response
-
-def test_get_results_no_profile(testrun):  # pylint: disable=W0613
-  """Test getting results with no profile."""
-
-  # Assign device name and timestamp
-  device_name = "device1"
-  timestamp = "2024-01-01T00:00:00"
-
-  # Send the post request
-  r = requests.post(f"{API}/export/{device_name}/{timestamp}", timeout=5)
-
-  # Check if is 404 (not found)
-  assert r.status_code == 404
-
-  # parse the json response
-  response = r.json()
-
-  # Check if "error" in response
-  assert "error" in response
-
 
 # Tests for system endpoints
 
@@ -952,6 +750,499 @@ def test_get_reports_no_reports(testrun): # pylint: disable=W0613
 
   # Check if the response is an empty list
   assert response == []
+
+@pytest.fixture
+def create_report_folder(): # pylint: disable=W0613
+  """Fixture to create the report.json and report.pdf in the expected path"""
+  def _create_report_folder(device_name, mac_address, timestamp):
+
+    # Create the device folder path
+    main_folder = Path(DEVICES_DIRECTORY) / device_name
+
+    # Remove the ":" from mac address for the folder structure
+    mac_address = mac_address.replace(":", "")
+
+    # Change the timestamp format for the folder structure
+    timestamp = timestamp.replace(" ", "T")
+
+    # Create the report folder path
+    report_folder = (main_folder / "reports" / timestamp /
+                      "test" / mac_address)
+
+    # Ensure the report folder exists
+    report_folder.mkdir(parents=True, exist_ok=True)
+
+    # Define the source and target paths for the report.json
+    json_source_report_path = Path(REPORTS_PATH) / "report.json"
+    json_target_report_path = report_folder / "report.json"
+
+     # Define the source and target paths for the report.pdf
+    pdf_source_report_path = Path(REPORTS_PATH) / "report.pdf"
+    pdf_target_report_path = report_folder / "report.pdf"
+
+    # Copy the report.json file from the source to the target location
+    shutil.copy(json_source_report_path, json_target_report_path)
+
+    # Copy the report.json file from the source to the target location
+    shutil.copy(pdf_source_report_path, pdf_target_report_path)
+
+    return report_folder
+
+  return _create_report_folder
+
+def create_and_get_device():
+  """Utility method to create a device"""
+
+  # Payload with device details
+  device ={
+        "mac_addr": "00:1e:42:28:9e:4a",
+        "manufacturer": "Teltonika",
+        "model": "TRB140"
+    }
+
+  # Send a POST request to create a new device
+  requests.post(f"{API}/device", data=json.dumps(device), timeout=5)
+
+  # Send the GET request to retrieve the created device's folder name
+  r = requests.get(f"{API}/devices", timeout=5)
+
+  # Return the parsed the json response
+  return r.json()
+
+@pytest.fixture()
+def add_device():
+  """Fixture to add device during tests"""
+  # Returning the reference to create_device
+  return create_and_get_device
+
+def test_delete_report_success(testrun, empty_devices_dir, # pylint: disable=W0613
+                               add_device, create_report_folder):  # pylint: disable=W0613
+  """Test successful deletion of a report (200)"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format for the folder structure
+  timestamp = "2024-01-01 00:00:00"
+
+  report_folder = create_report_folder(device_name, mac_address, timestamp)
+
+  # Payload
+  delete_data = {
+    "mac_addr": mac_address,
+    "timestamp": timestamp
+  }
+
+  # Send a DELETE request to remove the report
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status code is 200 (OK)
+  assert r.status_code == 200
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "success" in response
+  assert "success" in response
+
+  # Check if report folder has been deleted
+  assert not report_folder.exists()
+
+def test_delete_report_bad_request_missing_body(testrun, empty_devices_dir, # pylint: disable=W0613
+                                   add_device, create_report_folder):  # pylint: disable=W0613
+  """Test delete report bad request when body is missing (400)"""
+
+  # Send a DELETE request to remove the report without the body
+  r = requests.delete(f"{API}/report", timeout=5)
+
+  # Check if status code is 400 (bad request)
+  assert r.status_code == 400
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "Invalid request received, missing body" in response["error"]
+
+def test_delete_report_missing_mac_addr_and_timestamp(testrun,# pylint: disable=W0613
+            empty_devices_dir, add_device, create_report_folder):  # pylint: disable=W0613
+  """Test delete report bad request if mac addres and timestamp missing (400)"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format for the folder structure
+  timestamp = "2024-01-01 00:00:00"
+
+  # Create the report.json
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Empty payload
+  delete_data = {}
+
+  # Send a DELETE request to remove the report
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status code is 400 (bad request)
+  assert r.status_code == 400
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "Missing mac address or timestamp" in response["error"]
+
+def test_delete_report_incorrect_timestamp_format(testrun, add_device, # pylint: disable=W0613
+                                   empty_devices_dir, create_report_folder):  # pylint: disable=W0613
+  """Test delete report bad request when timestamp format is incorrect (400)"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the incorrect timestamp format
+  timestamp = "2024-01-01 incorrect"
+
+  # Create the report.json
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Payload
+  delete_data = {
+    "mac_addr": mac_address,
+    "timestamp": timestamp
+  }
+
+  # Send a DELETE request to remove the report
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status code is 400 (bad request)
+  assert r.status_code == 400
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "Incorrect timestamp format" in response["error"]
+
+def test_delete_report_no_report(testrun, empty_devices_dir):  # pylint: disable=W0613
+  """Test delete report when report does not exist (404)"""
+
+  # Payload to be deleted for a non existing device
+  delete_data = {
+      "mac_addr": "00:1e:42:35:73:c4",
+      "timestamp": "2024-01-01 00:00:00"
+  }
+
+  # Send the delete request to the endpoint
+  r = requests.delete(f"{API}/report", data=json.dumps(delete_data), timeout=5)
+
+  # Check if status is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the response json
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+def test_delete_report_internal_server_error(testrun, empty_devices_dir,  # pylint: disable=W0613
+                                      add_device, create_report_folder):  # pylint: disable=W0613
+  """Test for delete report causing internal server error (500)"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format for the folder structure
+  timestamp = "2024-01-01 00:00:00"
+
+  # Create the report folder and JSON file
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Construct the device report path
+  device_directory = os.path.join(DEVICES_DIRECTORY, device_name)
+
+  # Remove the folder and all its content before delete request
+  shutil.rmtree(device_directory)
+
+  # Prepare the payload for the DELETE request
+  delete_data = {
+      "mac_addr": mac_address,
+      "timestamp": timestamp
+  }
+
+  # Send the delete request to delete the report
+  r = requests.delete(f"{API}/report",
+                      data=json.dumps(delete_data),
+                      timeout=5)
+
+  # Check if status code is 500 (Internal Server Error)
+  assert r.status_code == 500
+
+  # Parse the JSON response
+  response = r.json()
+
+  # Check if error is present in the response
+  assert "error" in response
+
+  # Check if the correct error message is returned
+  assert "Error occured whilst deleting report" in response["error"]
+
+def test_get_report_success(testrun, empty_devices_dir,  # pylint: disable=W0613
+                    add_device, create_report_folder):  # pylint: disable=W0613
+  """Test get report when report exists (200)"""
+
+ # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Assign the device name
+  mac_address = device[0]["mac_addr"]
+
+  # Assign the timestamp format
+  timestamp = "2024-01-01T00:00:00"
+
+  # Create the report for the device
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Send the get request
+  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
+
+  # Check if status code is 200 (ok)
+  assert r.status_code == 200
+
+  # Check if the response is a PDF
+  assert r.headers["Content-Type"] == "application/pdf"
+
+def test_get_report_not_found(testrun, empty_devices_dir, add_device):  # pylint: disable=W0613
+  """Test get report when report doesn't exist (404)"""
+
+  # Assign timestamp
+  timestamp = "2024-01-01T00:00:00"
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name
+  device_name = device[0]["device_folder"]
+
+  # Send the get request
+  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
+
+  # Check if status code is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the response json
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "Report could not be found" in response["error"]
+
+def test_get_report_device_not_found(empty_devices_dir, testrun):  # pylint: disable=W0613
+  """Test getting a report when the device is not found (404)"""
+
+  # Assign device name and timestamp
+  device_name = "nonexistent_device"
+  timestamp = "2024-01-01T00:00:00"
+
+  # Send the get request
+  r = requests.get(f"{API}/report/{device_name}/{timestamp}", timeout=5)
+
+  # Check if is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message is returned
+  assert "Device not found" in response["error"]
+
+def test_export_report_result_not_found_no_device(testrun, empty_devices_dir,  # pylint: disable=W0613
+                                        create_report_folder):  # pylint: disable=W0613
+  """Test for export the report result when the device could not be found"""
+
+  # Assign the device name, mac_address and timestamp
+  device_name = "non existing device"
+  mac_address = "00:1e:42:35:73:c4"
+  timestamp = "2024-01-01T00:00:00"
+
+  # Create the report for the non-existing device
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Send the post request
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}", timeout=5)
+
+  # Check if is 404 (not found)
+  assert r.status_code == 404
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "A device with that name could not be found" in response["error"]
+
+def test_export_report_result_not_found_no_profile(testrun, empty_devices_dir, # pylint: disable=W0613
+                                          add_device, create_report_folder):  # pylint: disable=W0613
+  """Test for export report result when the profile is not found"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name and mac address
+  device_name = device[0]["device_folder"]
+  mac_address = device[0]["mac_addr"]
+
+  # Set the timestamp
+  timestamp = "2024-01-01T00:00:00"
+
+  # Create the report for the device
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Add a non existing profile into the payload
+  payload = {"profile": "non_existent_profile"}
+
+  # Send the post request
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}",
+                    json=payload,
+                    timeout=5)
+
+  # Check if is 404 (not found)
+  assert r.status_code == 404
+
+  # parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message returned
+  assert "A profile with that name could not be found" in response["error"]
+
+def test_export_results_with_existing_profile(testrun, empty_devices_dir, # pylint: disable=W0613
+                                              add_device, create_report_folder,
+                                              reset_profiles, add_profile): # pylint: disable=W0613
+  """Test export results with existing profile when report exists (200)"""
+
+  # Create a profile using the add_profile fixture
+  profile = add_profile("new_profile.json")
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name and mac address
+  device_name = device[0]["device_folder"]
+  mac_address = device[0]["mac_addr"]
+
+  # Set the timestamp
+  timestamp = "2024-01-01T00:00:00"
+
+  # Create the report for the device
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Now test the export endpoint
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}",
+                    json=profile,
+                    timeout=5)
+
+  # Check if status code is 200 (OK)
+  assert r.status_code == 200
+
+  # Check if the response is a zip
+  assert r.headers["Content-Type"] == "application/zip"
+
+def test_export_results_with_no_profile(testrun, empty_devices_dir, # pylint: disable=W0613
+                                        add_device, create_report_folder): # pylint: disable=W0613
+  """Test export results with no profile when report exists (200)"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name, mac address and timestamp
+  device_name = device[0]["device_folder"]
+  mac_address = device[0]["mac_addr"]
+  timestamp = "2024-01-01T00:00:00"
+
+  # Create the report for the device
+  create_report_folder(device_name, mac_address, timestamp)
+
+  # Now test the export endpoint
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}", timeout=5)
+
+  # Check if status code is 200 (OK)
+  assert r.status_code == 200
+
+  # Check if the response is a zip
+  assert r.headers["Content-Type"] == "application/zip"
+
+def test_export_results_not_found(testrun, # pylint: disable=W0613
+                                  empty_devices_dir, add_device):  # pylint: disable=W0613
+  """Test for export the report result when the device could not be found"""
+
+  # Load a device using the add_device fixture
+  device = add_device()
+
+  # Assign the device name and mac address
+  device_name = device[0]["device_folder"]
+
+  # Set the timestamp
+  timestamp = "2024-01-01T00:00:00"
+
+  # Send the post request to trigger the zipping process
+  r = requests.post(f"{API}/export/{device_name}/{timestamp}", timeout=10)
+
+  # Check if status code is 500 (Internal Server Error)
+  assert r.status_code == 404
+
+  # Parse the json response
+  response = r.json()
+
+  # Check if "error" in response
+  assert "error" in response
+
+  # Check if the correct error message is returned
+  assert "Test results could not be found" in response["error"]
 
 # Tests for device endpoints
 
