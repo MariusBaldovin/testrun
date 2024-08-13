@@ -383,7 +383,7 @@ class Api:
 
     if len(body_raw) == 0:
       response.status_code = 400
-      return self._generate_msg(False, "Invalid request received")
+      return self._generate_msg(False, "Invalid request received, missing body")
 
     try:
       body_json = json.loads(body_raw)
@@ -396,7 +396,7 @@ class Api:
     if "mac_addr" not in body_json or "timestamp" not in body_json:
       response.status_code = 400
       return self._generate_msg(False, "Missing mac address or timestamp")
-    
+
     mac_addr = body_json.get("mac_addr").lower()
     timestamp = body_json.get("timestamp")
 
@@ -406,7 +406,7 @@ class Api:
 
     except ValueError:
       response.status_code = 400
-      return self._generate_msg(False, "Timestamp format is incorrect")
+      return self._generate_msg(False, "Incorrect timestamp format")
 
     # Get device from MAC address
     device = self._session.get_device(mac_addr)
