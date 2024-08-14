@@ -643,16 +643,34 @@ class Api:
       return self._generate_msg(False,
                                 "A device with that name could not be found")
 
-    file_path = self._get_test_run().get_test_orc().zip_results(
+    # 1.3 file path
+    report_file_path = os.path.join(
+      DEVICES_PATH,
+      device_name,
+      "reports",
+      timestamp,"test",
+          device.mac_addr.replace(":",""))
+
+    if not os.path.isdir(report_file_path):
+      # pre 1.3 file path
+      report_file_path = os.path.join(DEVICES_PATH, device_name, "reports",
+                                                    timestamp)
+
+    if not os.path.isdir(report_file_path):
+      LOGGER.info("Report could not be found, returning 404")
+      response.status_code = 404
+      return self._generate_msg(False, "Report could not be found")
+
+    zip_file_path = self._get_test_run().get_test_orc().zip_results(
         device, timestamp, profile)
 
-    if file_path is None:
+    if zip_file_path is None:
       response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
       return self._generate_msg(
           False, "An error occurred whilst archiving test results")
 
-    if os.path.isfile(file_path):
-      return FileResponse(file_path)
+    if os.path.isfile(zip_file_path):
+      return FileResponse(zip_file_path)
     else:
       LOGGER.info("Test results could not be found, returning 404")
       response.status_code = 404
