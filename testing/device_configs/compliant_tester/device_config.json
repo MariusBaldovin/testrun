@@ -1,7 +1,7 @@
-{
-  "mac_addr": "02:42:aa:00:00:02",
+{ 
+  "mac_addr": "00:1a:79:00:00:01",
   "manufacturer": "Google",
-  "model": "Tester 2",
+  "model": "Tester 1",
   "type": "IoT Gateway",
   "technology": "Hardware - Access Control",
   "additional_info": [
@@ -35,7 +35,7 @@
       "enabled": false
     },
     "services": {
-      "enabled": true
+      "enabled": false
     },
     "ntp": {
       "enabled": false
@@ -44,10 +44,10 @@
       "enabled": false
     },
     "connection": {
-      "enabled": false
+      "enabled": true
     },
     "dns": {
-      "enabled": true
-    }  
-  }
+      "enabled": false
+    }
+  } 
 }

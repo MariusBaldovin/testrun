@@ -18,11 +18,11 @@ if [ -f $PID_FILE ]; then
     kill -9 $(cat $PID_FILE) || true
     rm -f $PID_FILE
 fi
-dhclient -v $INTF
+dhclient -v $INTF &
 DHCP_TPID=$!
 echo $DHCP_TPID
 
-# SERVICES MODULE
+## SERVICES MODULE
 
 # Start FTP service 
 echo "Starting FTP on ports 20, 21"
@@ -64,7 +64,21 @@ echo "Starting TFTP on port 69 "
 echo "Starting NTP service"
 service ntp start
 
-# DNS MODULE
+## NTP MODULE
+
+# Force NTPv3 request (ntp.network.ntp_support)
+echo "Starting NTP service and forcing NTPv3"
+ntpdate -q -p 1 -o 3 $NTP_SERVER
+
+## CONNECTION MODULE
+
+# connection.port_link
+ip link set $INTF down
+
+# connection.port_speed
+ethtool -s $INTF speed 10 duplex full autoneg off
+
+## DNS MODULE
 
 # Test DNS resolution
 echo "Sending DNS request to $DNS_SERVER"

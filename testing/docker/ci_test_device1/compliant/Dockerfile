@@ -1,4 +1,3 @@
-
 FROM ubuntu@sha256:e6173d4dc55e76b87c4af8db8821b1feae4146dd47341e4d431118c7dd060a74
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -7,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get -y upgrade
 
 # Install the necessary packages
-RUN apt-get update && apt-get install -y isc-dhcp-client dnsutils netcat-openbsd arping
+RUN apt-get update && apt-get install -y isc-dhcp-client dnsutils netcat-openbsd arping ntpdate ethtool iputils-ping procps ebtables tcpdump
 
 # Clean up the package lists to reduce the image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*

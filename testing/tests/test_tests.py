@@ -96,6 +96,9 @@ def collect_actual_results(results_dict):
 def test_tests(results, test_matrix):
   """ Test to check if expected results were obtained """
 
+  # Keep track of any assertion failures
+  test_failures = []
+
   # Iterate through each tester from test_tests.json
   for tester, props in test_matrix.items():
 
@@ -105,25 +108,36 @@ def test_tests(results, test_matrix):
     # Collect actual results
     actual = set(collect_actual_results(results[tester]))
 
-    # Tests missing in actual results for debugging
-    missing_in_actual = expected - actual
+    # # Tests missing in actual results for debugging
+    # missing_in_actual = expected - actual
 
-    # Extra tests present in actual results for debugging
-    extra_in_actual = actual - expected
+    # # Extra tests present in actual results for debugging
+    # extra_in_actual = actual - expected
 
-    # Print tester name
-    print(f'\nTest: {tester}')
+    # # Print tester name
+    # print(f'\nTester: {tester}')
 
-    # Print missing tests if any for debugging
-    if missing_in_actual:
-      print(f'Missing in actual results: {missing_in_actual}')
+    # # Print missing tests if any for debugging
+    # if missing_in_actual:
+    #   print('Missing in actual results (module not enabled):')
+    #   for result in missing_in_actual:
+    #     print(f'{result.name}: {result.result}')
 
-     # Print extra tests if any for debugging
-    if extra_in_actual:
-      print(f'Extra in actual results: {extra_in_actual}')
+    # # Print extra tests if any for debugging
+    # if extra_in_actual:
+    #   print('Extra in actual results (not added in test_tests.json):')
+    #   for result in extra_in_actual:
+    #     print(f'{result.name}: {result.result}')
 
-    # Check if all expected results are present in actual results
-    assert expected & actual == expected
+    # If expected results not present in actual results
+    if expected & actual != expected:
+
+      # Add the failed tester in the test_failures list
+      test_failures.append(f'Tester {tester} failed')
+
+  # Raise an AssertionError if there are any failures
+  if test_failures:
+    raise AssertionError(test_failures)
 
 def test_list_tests(capsys, results, test_matrix):
   """ List all tests done and categorise based on compliance """

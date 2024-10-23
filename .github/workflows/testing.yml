@@ -2,7 +2,7 @@ name: Testrun test suite
 permissions: {}
 
 on:
-  pull_request:
+  push:
   schedule:
     - cron: '0 13 * * *'
 
@@ -22,6 +22,12 @@ jobs:
         shell: bash {0}
         run: TESTRUN_DIR=. cmd/install
         timeout-minutes: 30
+      - name: Configure Docker Daemon for IPv6
+        shell: bash {0}
+        run: |
+          sudo mkdir -p /etc/docker
+          echo '{"ipv6": true, "fixed-cidr-v6": "2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
       - name: Run tests
         shell: bash {0}
         run: testing/tests/test_tests

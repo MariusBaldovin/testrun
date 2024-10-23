@@ -20,6 +20,7 @@ TEST_DIR=/tmp/results
 MATRIX=testing/tests/test_tests.json
 COMPLIANT_IMAGE="testrun/compliant"
 NON_COMPLIANT_IMAGE="testrun/non_compliant"
+COMPLIANT_IPV6="testrun/compliant_ipv6"
 
 # Remove and recreate results directory
 rm -rf $TEST_DIR/
@@ -37,12 +38,23 @@ sudo ip link set dev endev0b up
 sudo docker network remove endev0
 sudo docker network create -d macvlan -o parent=endev0b endev0
 
+# Create IPv6 Docker Network
+sudo docker network remove ipv6net
+sudo docker network create \
+  --driver=bridge \
+  --ipv6 \
+  --subnet=2001:db8::/64 \
+  ipv6net
+
+sudo docker network ls
+
 # Start OVS
 sudo /usr/share/openvswitch/scripts/ovs-ctl start
 
 # Build the Test Containers (Compliant and Non-Compliant)
-sudo docker build ./testing/docker/ci_test_device1/compliant -t $COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/compliant/Dockerfile
-sudo docker build ./testing/docker/ci_test_device1/non_compliant -t $NON_COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/non_compliant/Dockerfile
+#sudo docker build ./testing/docker/ci_test_device1/compliant -t $COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/compliant/Dockerfile
+# sudo docker build ./testing/docker/ci_test_device1/non_compliant -t $NON_COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/non_compliant/Dockerfile
+sudo docker build ./testing/docker/ci_test_device1/compliant_ipv6 -t $COMPLIANT_IPV6 -f ./testing/docker/ci_test_device1/compliant_ipv6/Dockerfile
 
 # Copy configuration to testrun
 sudo cp testing/tests/system.json local/system.json
@@ -61,8 +73,10 @@ for tester in $TESTERS; do
   # Extract details from JSON
   image=$(jq -r .$tester.image $MATRIX)
   ethmac=$(jq -r .$tester.ethmac $MATRIX)
- 
+  network_type=$(jq -r .$tester.network $MATRIX)
+
   # Start the testrun
+  echo Starting testrun
   touch $testrun_log
   sudo timeout 900 bin/testrun --single-intf --no-ui > $testrun_log 2>&1 &
   TPID=$!
@@ -98,16 +112,42 @@ for tester in $TESTERS; do
 
   echo Running container $tester
 
-  # Run the test container
-  sudo docker run -d \
-    --network=endev0 \
-    --mac-address=$ethmac \
-    --cap-add=NET_ADMIN \
-    -v /tmp:/out \
-    --privileged \
-    --name=$tester \
-    $image
+  # # Run the test container
+  # sudo docker run -d \
+  #   --network=endev0 \
+  #   --mac-address=$ethmac \
+  #   --cap-add=NET_ADMIN \
+  #   -v /tmp:/out \
+  #   --privileged \
+  #   --name=$tester \
+  #   $image
   
+  # Determine which network to use (IPv4 or IPv6)
+  if [[ $network_type == "ipv6" ]]; then
+    # Use IPv6 network
+    echo "Running container $tester on IPv6 network"
+    sudo docker run -d \
+      --network=endev0 \
+      --mac-address=$ethmac \
+      --cap-add=NET_ADMIN \
+      -v /tmp:/out \
+      --privileged \
+      --name=$tester \
+      $image
+    sudo docker network connect ipv6net $tester
+  else
+    # Use IPv4 network
+    echo "Running container $tester on IPv4 network"
+    sudo docker run -d \
+      --network=endev0 \
+      --mac-address=$ethmac \
+      --cap-add=NET_ADMIN \
+      -v /tmp:/out \
+      --privileged \
+      --name=$tester \
+      $image
+  fi
+
   # Wait for test completion
   WAITING=600
   for i in `seq 1 $WAITING`; do
@@ -129,8 +169,8 @@ for tester in $TESTERS; do
   echo Stopping container $tester
 
   cp runtime/test/${ethmac//:/}/report.json $TEST_DIR/$tester.json
-  more $TEST_DIR/$tester.json | cat 
-  more $testrun_log | cat 
+  # more $TEST_DIR/$tester.json | cat 
+  # more $testrun_log | cat 
 
 done
 
