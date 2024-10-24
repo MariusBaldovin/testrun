@@ -108,26 +108,26 @@ def test_tests(results, test_matrix):
     # Collect actual results
     actual = set(collect_actual_results(results[tester]))
 
-    # # Tests missing in actual results for debugging
-    # missing_in_actual = expected - actual
+    # Tests missing in actual results for debugging
+    missing_in_actual = expected - actual
 
-    # # Extra tests present in actual results for debugging
-    # extra_in_actual = actual - expected
+    # Extra tests present in actual results for debugging
+    extra_in_actual = actual - expected
 
-    # # Print tester name
-    # print(f'\nTester: {tester}')
+    # Print tester name
+    print(f'\nTester: {tester}')
 
-    # # Print missing tests if any for debugging
-    # if missing_in_actual:
-    #   print('Missing in actual results (module not enabled):')
-    #   for result in missing_in_actual:
-    #     print(f'{result.name}: {result.result}')
+    # Print missing tests if any for debugging
+    if missing_in_actual:
+      print('Missing in actual results (module not enabled):')
+      for result in missing_in_actual:
+        print(f'{result.name}: {result.result}')
 
-    # # Print extra tests if any for debugging
-    # if extra_in_actual:
-    #   print('Extra in actual results (not added in test_tests.json):')
-    #   for result in extra_in_actual:
-    #     print(f'{result.name}: {result.result}')
+    # Print extra tests if any for debugging
+    if extra_in_actual:
+      print('Extra in actual results (not added in test_tests.json):')
+      for result in extra_in_actual:
+        print(f'{result.name}: {result.result}')
 
     # If expected results not present in actual results
     if expected & actual != expected:

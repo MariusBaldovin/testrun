@@ -19,7 +19,7 @@ if [ -f $PID_FILE ]; then
     rm -f $PID_FILE
 fi
 dhclient -v $INTF &
-DHCP_TPID=$!
+DHCP_TPID=$(pgrep -f "dhclient.*$INTF")
 echo $DHCP_TPID
 
 ## SERVICES MODULE
@@ -71,12 +71,6 @@ echo "Starting NTP service and forcing NTPv3"
 ntpdate -q -p 1 -o 3 $NTP_SERVER
 
 ## CONNECTION MODULE
-
-# connection.port_link
-ip link set $INTF down
-
-# connection.port_speed
-ethtool -s $INTF speed 10 duplex full autoneg off
 
 ## DNS MODULE
 
