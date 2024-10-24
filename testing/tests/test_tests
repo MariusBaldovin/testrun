@@ -130,8 +130,8 @@ for tester in $TESTERS; do
   echo Stopping container $tester
 
   cp runtime/test/${ethmac//:/}/report.json $TEST_DIR/$tester.json
-  # more $TEST_DIR/$tester.json | cat 
-  # more $testrun_log | cat 
+  more $TEST_DIR/$tester.json | cat 
+  more $testrun_log | cat 
 
 done
 
