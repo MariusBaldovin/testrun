@@ -110,7 +110,7 @@ for tester in $TESTERS; do
     $image
 
   # Wait for test completion
-  WAITING=600
+  WAITING=2400
   for i in `seq 1 $WAITING`; do
     tail -1 $testrun_log
       if [[ -n $(fgrep "All tests complete" $testrun_log) ]]; then
