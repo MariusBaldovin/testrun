@@ -8,6 +8,9 @@ NTP_SERVER=10.10.10.5
 DNS_SERVER=8.8.8.8
 INTF=eth0
 
+# Ensure IPv6 is enabled
+sysctl net.ipv6.conf.$INTF.disable_ipv6=0
+
 # DHCP
 ip addr flush dev $INTF
 PID_FILE=/var/run/dhclient.pid
@@ -115,25 +118,35 @@ dhclient -v $INTF
 echo "Enabling IPv6 SLAAC on $INTF"
 sysctl net.ipv6.conf.$INTF.autoconf=1
 sysctl net.ipv6.conf.$INTF.accept_ra=2
-
-# Restart the interface to pick up router advertisements
-ip link set dev $INTF down
 ip link set dev $INTF up
 
-# Check if an IPv6 address has been assigned
-IPV6_ADDR=$(ip -6 addr show $INTF | grep "inet6" | grep "global" | awk '{print $2}')
-echo "Assigned IPv6 SLAAC Address: $IPV6_ADDR"
+# Check if link-local address exists, assign manually if not
+echo "Checking link-local IPv6 address"
+if ! ip -6 addr show $INTF | grep -q "inet6 fe80::"; then
+    echo "No link-local address found, assigning manually..."
+    ip -6 addr add fe80::1/64 dev $INTF
+fi
 
-# --- TEST: connection.ipv6_ping ---
-# Send IPv6 ping request
-echo "Pinging the device's IPv6 address"
-ping6 -c 4 $IPV6_ADDR
+# Run DHCPv6 client for SLAAC
+dhclient -6 -v $INTF
+
+# Test: connection.ipv6_slaac
+echo "Checking IPv6 SLAAC address"
+ip -6 addr show $INTF
+
+# Allow ICMPv6 echo requests and replies for ping
+ip6tables -A INPUT -p ipv6-icmp --icmpv6-type echo-request -j ACCEPT
+ip6tables -A OUTPUT -p ipv6-icmp --icmpv6-type echo-reply -j ACCEPT
+
+# connection.ipv6_ping
+echo "Pinging IPv6 address"
+ping6 -c 4 fe80::1%$INTF
 
 # Check if the ping was successful
 if [ $? -eq 0 ]; then
-  echo "IPv6 Ping succeeded."
+  echo "IPv6 Ping succeeded"
 else
-  echo "IPv6 Ping failed."
+  echo "IPv6 Ping failed"
 fi
 
 ## DNS MODULE
