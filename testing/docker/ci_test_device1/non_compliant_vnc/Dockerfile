@@ -20,5 +20,5 @@ RUN mkdir ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd && chmod 600 
 # Start the VNC server automatically when the container starts
 CMD ["tightvncserver", ":1", "-geometry", "1280x800", "-depth", "24"]
 
-# Expose the VNC port (5901 for display :1)
+# Expose the VNC port
 EXPOSE 5901
