@@ -69,7 +69,7 @@ service ntp start
 # # Force NTPv3 request (ntp.network.ntp_support)
 # echo "Starting NTP service and forcing NTPv3"
 # ntpdate -q -p 1 -o 3 $NTP_SERVER
-#123
+#1234
 ## CONNECTION MODULE
 
 ## DNS MODULE
