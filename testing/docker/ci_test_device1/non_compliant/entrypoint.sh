@@ -66,9 +66,9 @@ service ntp start
 
 ## NTP MODULE
 
-# Force NTPv3 request (ntp.network.ntp_support)
-echo "Starting NTP service and forcing NTPv3"
-ntpdate -q -p 1 -o 3 $NTP_SERVER
+# # Force NTPv3 request (ntp.network.ntp_support)
+# echo "Starting NTP service and forcing NTPv3"
+# ntpdate -q -p 1 -o 3 $NTP_SERVER
 
 ## CONNECTION MODULE
 

@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get -y upgrade
 
 # Install the necessary packages
-RUN apt-get update && apt-get install -y isc-dhcp-client dnsutils netcat-openbsd arping ntp ntpdate iputils-ping procps iproute2 
+RUN apt-get update && apt-get install -y isc-dhcp-client dnsutils netcat-openbsd arping ntp iputils-ping procps iproute2 
 
 # Clean up the package lists to reduce the image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
