@@ -42,7 +42,7 @@ sudo /usr/share/openvswitch/scripts/ovs-ctl start
 
 # Build the Test Containers (Compliant and Non-Compliant)
 sudo docker build ./testing/docker/ci_test_device1/compliant -t $COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/compliant/Dockerfile
-#sudo docker build ./testing/docker/ci_test_device1/non_compliant -t $NON_COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/non_compliant/Dockerfile
+sudo docker build ./testing/docker/ci_test_device1/non_compliant -t $NON_COMPLIANT_IMAGE -f ./testing/docker/ci_test_device1/non_compliant/Dockerfile
 
 # Copy configuration to testrun
 sudo cp testing/tests/system.json local/system.json
