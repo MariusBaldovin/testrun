@@ -58,7 +58,7 @@ fi
 # connection.switch.arp_inspection
 
 # Monitor ARP traffic using tcpdump for debugging
-tcpdump -i $INTF arp &
+# tcpdump -i $INTF arp &
 
 # Display IPv4 address (connection.dhcp_address, connection.private_address, connection.shared_address, connection.single_ip)
 echo "Checking for existing IP address on $INTF"

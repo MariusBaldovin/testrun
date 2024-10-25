@@ -64,11 +64,49 @@ echo "Starting TFTP on port 69 "
 echo "Starting NTP service"
 service ntp start
 
+# Start VNC server
+
+# Set default environment variables
+RESOLUTION=${RESOLUTION:-1920x1080}
+DISPLAY=:1
+export USER=${USER:-root}
+
+# Add hostname to /etc/hosts to avoid warnings
+echo 'Updating /etc/hosts file...'
+HOSTNAME=$(hostname)
+echo "127.0.1.1\t$HOSTNAME" >> /etc/hosts
+
+# Kill any existing VNC server on display :1
+echo "Starting VNC server at $RESOLUTION..."
+if pgrep Xtightvnc; then
+  vncserver -kill :1
+fi
+
+## Start the VNC server port 5901 and 6001
+vncserver -geometry $RESOLUTION &
+
+# Start the VNC server only on port 5901
+# vncserver :1 -geometry $RESOLUTION -rfbport 5901 -nolisten tcp &
+
+sleep 2
+
+# Capture vnc ports
+VNC_PORTS=$(netstat -tlnp 2>/dev/null | grep Xtightvnc | awk '{print $4}' | cut -d: -f2)
+echo "VNC server started on ports: $VNC_PORTS"
+
+netstat -tlnp | grep Xtightvnc
+
+netstat -tlnp | grep -E '5901|6001'
+
+# Check VNC server on ports 5901 and 6001
+telnet localhost 5901 < /dev/null
+telnet localhost 6001 < /dev/null
+
 ## NTP MODULE
 
-# # Force NTPv3 request (ntp.network.ntp_support)
-# echo "Starting NTP service and forcing NTPv3"
-# ntpdate -q -p 1 -o 3 $NTP_SERVER
+# Force NTPv3 request (ntp.network.ntp_support)
+echo "Starting NTP service and forcing NTPv3"
+ntpdate -u -b -o 3 $NTP_SERVER
 
 ## CONNECTION MODULE
 

@@ -48,6 +48,7 @@
             "security.services.pop": "Non-Compliant",
             "security.services.imap": "Non-Compliant",
             "security.services.snmpv3": "Non-Compliant",
+            "security.services.vnc": "Non-Compliant",
             "security.services.tftp": "Non-Compliant",
             "ntp.network.ntp_server": "Non-Compliant",
 
@@ -57,10 +58,11 @@
             "connection.ipv6_slaac": "Non-Compliant",
             "connection.ipv6_ping": "Non-Compliant",
 
+            "ntp.network.ntp_support": "Non-Compliant",
+
             "dns.network.hostname_resolution": "Non-Compliant",
             "dns.network.from_dhcp": "Informational",
             "dns.mdns": "Informational"
         }
-    }
-    
+    }  
 }
