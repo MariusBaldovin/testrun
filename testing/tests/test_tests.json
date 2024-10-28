@@ -55,10 +55,7 @@
             "connection.port_speed": "Non-Compliant",
             "connection.port_duplex": "Non-Compliant",
             "connection.mac_oui": "Non-Compliant",
-            "connection.ipv6_slaac": "Non-Compliant",
             "connection.ipv6_ping": "Non-Compliant",
-
-            "ntp.network.ntp_support": "Non-Compliant",
 
             "dns.network.hostname_resolution": "Non-Compliant",
             "dns.network.from_dhcp": "Informational",
