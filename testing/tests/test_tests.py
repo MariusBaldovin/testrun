@@ -119,7 +119,7 @@ def test_tests(results, test_matrix):
 
     # Print missing tests if any for debugging
     if missing_in_actual:
-      print('Missing in actual results (module not enabled):')
+      print('Missing in actual results (test where assertion failed):')
       for result in missing_in_actual:
         print(f'{result.name}: {result.result}')
 
