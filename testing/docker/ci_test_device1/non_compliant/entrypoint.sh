@@ -60,9 +60,9 @@ echo "Starting SNMPv2 on ports 161/162 "
 echo "Starting TFTP on port 69 "
 (while true; do echo -ne "\0\x05\0\0\x07\0" | nc -u -l -w 1 69; done) &
 
-# Start NTP service 
-echo "Starting NTP service"
-service ntp start
+# # Start NTP service 
+# echo "Starting NTP service"
+# service ntp start
 
 # Start VNC server
 
@@ -85,20 +85,15 @@ fi
 ## Start the VNC server port 5901 and 6001
 vncserver -geometry $RESOLUTION &
 
-# Start the VNC server only on port 5901
-# vncserver :1 -geometry $RESOLUTION -rfbport 5901 -nolisten tcp &
-
 sleep 2
 
 # Capture vnc ports
 VNC_PORTS=$(netstat -tlnp 2>/dev/null | grep Xtightvnc | awk '{print $4}' | cut -d: -f2)
 echo "VNC server started on ports: $VNC_PORTS"
 
-netstat -tlnp | grep Xtightvnc
-
-netstat -tlnp | grep -E '5901|6001'
-
 # Check VNC server on ports 5901 and 6001
+netstat -tlnp | grep Xtightvnc
+netstat -tlnp | grep -E '5901|6001'
 telnet localhost 5901 < /dev/null
 telnet localhost 6001 < /dev/null
 
@@ -106,7 +101,7 @@ telnet localhost 6001 < /dev/null
 
 # Force NTPv3 request (ntp.network.ntp_support)
 echo "Starting NTP service and forcing NTPv3"
-ntpdate -u -b -o 3 $NTP_SERVER
+ntpdate -u -b -o 3 $NTP_SERVER || echo "Failed ntpv3 request"
 
 ## CONNECTION MODULE
 
