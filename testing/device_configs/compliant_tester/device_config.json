@@ -38,7 +38,7 @@
       "enabled": true
     },
     "ntp": {
-      "enabled": true
+      "enabled": false
     },
     "tls": {
       "enabled": false
