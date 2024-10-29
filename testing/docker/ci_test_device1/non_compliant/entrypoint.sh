@@ -97,6 +97,12 @@ netstat -tlnp | grep -E '5901|6001'
 telnet localhost 5901 < /dev/null
 telnet localhost 6001 < /dev/null
 
+## NTP MODULE
+
+# Force NTPv3 request (ntp.network.ntp_support)
+echo "Starting NTP service and forcing NTPv3"
+sudo ntpdate -u -b -o 3 $NTP_SERVER || echo "Failed ntpv3 request"
+
 ## CONNECTION MODULE
 
 ## DNS MODULE

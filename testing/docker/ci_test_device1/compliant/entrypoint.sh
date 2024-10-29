@@ -30,7 +30,7 @@ echo "FTP, SSH, Telnet, SMTP, HTTP, POP, IMAP, SNMP, VNC, TFTP, NTP services not
 ## NTP MODULE
 
 # NTP support (ntp.network.ntp_support)
-ntpdate -u -t 10 -q $NTP_SERVER
+sudo ntpdate -u -t 10 -q $NTP_SERVER
 
 # Check if the NTP request was successful
 if [ $? -eq 0 ]; then
@@ -46,7 +46,7 @@ dhclient -v -sf /usr/sbin/ntpdate eth0
 if grep -q "ntp-servers" /var/lib/dhcp/dhclient.leases; then
   grep "option ntp-servers" /var/lib/dhcp/dhclient.leases | awk '{print $3}' | while read ntp_server; do
     echo "NTP request sent to DHCP-provided server: $ntp_server"
-    ntpdate -q $NTP_SERVER
+    sudo ntpdate -q $NTP_SERVER
     echo "NTP request sent to DHCP-provided server: $NTP_SERVER"
     done
 else
