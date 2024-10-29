@@ -1,6 +1,5 @@
 FROM ubuntu@sha256:e6173d4dc55e76b87c4af8db8821b1feae4146dd47341e4d431118c7dd060a74
 
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Update the package list and upgrade the installed packages to their latest versions

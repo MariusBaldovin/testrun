@@ -16,6 +16,7 @@ import util
 import time
 import traceback
 import os
+from scapy.error import Scapy_Exception
 from scapy.all import rdpcap, DHCP, ARP, Ether, ICMP, IPv6, ICMPv6ND_NS
 from test_module import TestModule
 from dhcp1.client import Client as DHCPClient1
@@ -581,8 +582,8 @@ class ConnectionModule(TestModule):
 
     try:
       packet_capture += rdpcap(DHCP_CAPTURE_FILE)
-    except FileNotFoundError:
-      LOGGER.error('dhcp-1.pcap not found, ignoring')
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('dhcp-1.pcap not found or empty, ignoring')
 
     sends_ipv6 = False
     for packet_number, packet in enumerate(packet_capture, start=1):
