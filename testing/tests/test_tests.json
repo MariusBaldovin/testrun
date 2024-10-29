@@ -15,7 +15,8 @@
             "security.services.vnc": "Compliant",
             "security.services.tftp": "Compliant",
             "ntp.network.ntp_server": "Compliant",
-
+            
+            "connection.switch.arp_inspection": "Compliant",
             "connection.switch.dhcp_snooping": "Compliant",
             "connection.dhcp_address": "Compliant",
             "connection.mac_address": "Compliant",
@@ -26,9 +27,6 @@
             "connection.target_ping": "Compliant",
             "connection.ipaddr.ip_change": "Compliant",
             "connection.ipaddr.dhcp_failover": "Compliant",
-
-            "ntp.network.ntp_support": "Compliant",
-            "ntp.network.ntp_dhcp": "Compliant",
 
             "dns.network.hostname_resolution": "Compliant",
             "dns.network.from_dhcp": "Informational",
