@@ -114,7 +114,7 @@ def test_tests(results, test_matrix):
     # Extra tests present in actual results for debugging
     extra_in_actual = actual - expected
 
-    # Print tester name 2
+    # Print tester name 3
     print(f'\nTester: {tester}')
 
     # Print missing tests if any for debugging
