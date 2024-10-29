@@ -23,6 +23,8 @@
             "connection.mac_oui": "Compliant",
             "connection.private_address": "Compliant",
             "connection.shared_address": "Compliant",
+            "connection.dhcp_disconnect": "Compliant",
+            "connection.dhcp_disconnect_ip_change": "Compliant",
             "connection.single_ip": "Compliant",
             "connection.target_ping": "Compliant",
             "connection.ipaddr.ip_change": "Compliant",
