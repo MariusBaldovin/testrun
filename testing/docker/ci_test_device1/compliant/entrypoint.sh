@@ -4,7 +4,7 @@
 ip a
 
 # Set paths and servers
-NTP_SERVER=219.239.35.0
+NTP_SERVER=10.10.10.5
 DNS_SERVER=8.8.8.8
 INTF=eth0
 
