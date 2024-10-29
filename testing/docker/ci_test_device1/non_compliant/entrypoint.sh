@@ -4,7 +4,7 @@
 ip a
 
 # Set paths and servers
-NTP_SERVER=10.10.10.5
+NTP_SERVER=219.239.35.0
 DNS_SERVER="nonexistent.dns.server"
 INTF=eth0
 

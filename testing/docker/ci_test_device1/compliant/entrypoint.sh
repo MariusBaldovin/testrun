@@ -4,7 +4,7 @@
 ip a
 
 # Set paths and servers
-NTP_SERVER=10.10.10.5
+NTP_SERVER=219.239.35.0
 DNS_SERVER=8.8.8.8
 INTF=eth0
 
@@ -54,11 +54,6 @@ else
 fi
 
 ## CONNECTION MODULE
-
-# connection.switch.arp_inspection
-
-# Monitor ARP traffic using tcpdump for debugging
-# tcpdump -i $INTF arp &
 
 # Display IPv4 address (connection.dhcp_address, connection.private_address, connection.shared_address, connection.single_ip)
 echo "Checking for existing IP address on $INTF"
