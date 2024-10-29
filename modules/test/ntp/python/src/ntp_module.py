@@ -13,6 +13,7 @@
 # limitations under the License.
 """NTP test module"""
 from test_module import TestModule
+from scapy.error import Scapy_Exception
 from scapy.all import rdpcap, IP, IPv6, NTP, UDP, Ether
 import os
 from collections import defaultdict

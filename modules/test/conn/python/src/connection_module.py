@@ -570,7 +570,9 @@ class ConnectionModule(TestModule):
     slac_test, sends_ipv6 = self._has_slaac_addres()
     if slac_test:
       result = True, f'Device has formed SLAAC address {self._device_ipv6_addr}'
-    if result is None:
+    elif slac_test is None:
+      result = 'Error', 'An error occurred whilst running this test'
+    else:
       if sends_ipv6:
         LOGGER.info('Device does not support IPv6 SLAAC')
         result = False, 'Device does not support IPv6 SLAAC'
@@ -587,6 +589,7 @@ class ConnectionModule(TestModule):
       packet_capture += rdpcap(DHCP_CAPTURE_FILE)
     except (FileNotFoundError, Scapy_Exception):
       LOGGER.error('dhcp-1.pcap not found or empty, ignoring')
+      return None, False
 
     sends_ipv6 = False
     for packet_number, packet in enumerate(packet_capture, start=1):
