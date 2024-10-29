@@ -30,7 +30,7 @@ echo "FTP, SSH, Telnet, SMTP, HTTP, POP, IMAP, SNMP, VNC, TFTP, NTP services not
 ## NTP MODULE
 
 # NTP support (ntp.network.ntp_support)
-ntpdate -q $NTP_SERVER
+ntpdate -u -t 10 -q $NTP_SERVER
 
 # Check if the NTP request was successful
 if [ $? -eq 0 ]; then
