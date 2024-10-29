@@ -25,7 +25,7 @@ NON_COMPLIANT_IMAGE="testrun/non_compliant"
 rm -rf $TEST_DIR/
 mkdir -p $TEST_DIR
 
-# Setup requirements 2
+# Setup requirements 3
 sudo apt-get update
 sudo apt-get install -y openvswitch-common openvswitch-switch tcpdump jq moreutils coreutils isc-dhcp-client
 
