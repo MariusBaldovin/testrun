@@ -83,7 +83,8 @@ if pgrep Xtightvnc; then
 fi
 
 ## Start the VNC server port 5901 and 6001
-vncserver -geometry $RESOLUTION &
+# vncserver :1 -geometry $RESOLUTION &
+vncserver :1 -geometry $RESOLUTION -rfbport 5901 -localhost -nolisten tcp
 
 sleep 2
 
@@ -101,7 +102,7 @@ telnet localhost 6001 < /dev/null
 
 # Force NTPv3 request (ntp.network.ntp_support)
 echo "Starting NTP service and forcing NTPv3"
-sudo ntpdate -u -b -o 3 $NTP_SERVER || echo "Failed ntpv3 request"
+ntpdate -u -b -o 3 $NTP_SERVER || echo "Failed ntpv3 request"
 
 ## CONNECTION MODULE
 

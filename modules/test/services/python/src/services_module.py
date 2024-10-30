@@ -275,6 +275,9 @@ class ServicesModule(TestModule):
   def _check_results(self, ports, services):
 
     LOGGER.info('Checking results')
+    LOGGER.info(f'services are: {services}')
+    LOGGER.info(f'ports checked are: {ports}')
+
 
     match_ports = []
 
@@ -301,7 +304,7 @@ class ServicesModule(TestModule):
         if not allowed:
           match_ports.append(open_port_info['number'] + '/' +
                              open_port_info['tcp_udp'])
-
+    LOGGER.info(f'match ports are: {match_ports}')
     return match_ports
 
   def _security_services_ftp(self, config):
@@ -377,8 +380,9 @@ class ServicesModule(TestModule):
 
   def _security_services_vnc(self, config):
     LOGGER.info('Running ntp.services.vnc')
-
     open_ports = self._check_results(config['ports'], config['services'])
+    LOGGER.info(f'open ports are {open_ports}')
+    LOGGER.info(f'config is {config}')
     if len(open_ports) == 0:
       return True, 'No VNC server found'
     else:

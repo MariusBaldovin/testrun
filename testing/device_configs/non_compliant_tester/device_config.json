@@ -44,10 +44,10 @@
       "enabled": false
     },
     "connection": {
-      "enabled": true
+      "enabled": false
     },
     "dns": {
-      "enabled": true
+      "enabled": false
     }  
   }
 }

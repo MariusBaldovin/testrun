@@ -40,4 +40,3 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 5901
-EXPOSE 6001
