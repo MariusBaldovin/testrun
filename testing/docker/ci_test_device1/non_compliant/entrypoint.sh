@@ -74,19 +74,12 @@ export USER=${USER:-root}
 # Add hostname to /etc/hosts to avoid warnings
 echo 'Updating /etc/hosts file...'
 HOSTNAME=$(hostname)
-echo "127.0.1.1\t$HOSTNAME" >> /etc/hosts
+echo "0.0.0.0\t$HOSTNAME" >> /etc/hosts
 
-# Kill any existing VNC server on display :1
-echo "Starting VNC server at $RESOLUTION..."
-if pgrep Xtightvnc; then
-  vncserver -kill :1
-fi
-
-## Start the VNC server port 5901 and 6001
-# vncserver :1 -geometry $RESOLUTION &
-vncserver :1 -geometry $RESOLUTION -rfbport 5901 -localhost -nolisten tcp
-
-sleep 2
+# Start the VNC server
+echo "Starting VNC server"
+vncserver :1 -geometry $RESOLUTION -rfbport 5901 &
+sleep 3
 
 # Capture vnc ports
 VNC_PORTS=$(netstat -tlnp 2>/dev/null | grep Xtightvnc | awk '{print $4}' | cut -d: -f2)
