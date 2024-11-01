@@ -62,7 +62,7 @@ for tester in $TESTERS; do
   image=$(jq -r .$tester.image $MATRIX)
   ethmac=$(jq -r .$tester.ethmac $MATRIX)
 
-  # Start the testrun 10
+  # Start the testrun 11
   echo Starting testrun
   touch $testrun_log
   sudo timeout 2400 bin/testrun --single-intf --no-ui --target $ethmac -fw 1.0 > $testrun_log 2>&1 &
