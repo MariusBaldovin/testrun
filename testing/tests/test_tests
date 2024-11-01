@@ -47,7 +47,7 @@ sudo docker build ./testing/docker/ci_test_device1/non_compliant -t $NON_COMPLIA
 # Copy configuration to testrun
 sudo cp testing/tests/system.json local/system.json
 
-# Copy device configs to testrun 9
+# Copy device configs to testrun 10
 sudo cp -r testing/device_configs/* local/devices
 
 # Extract tester information from the JSON file
