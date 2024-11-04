@@ -119,7 +119,7 @@ fi
 VNC_PORTS=$(netstat -tlnp 2>/dev/null | grep Xtightvnc | awk '{print $4}' | cut -d: -f2)
 echo "VNC server started on ports: $VNC_PORTS"
 
-# Check VNC server on ports 5901 and 6001  1
+# Check VNC server on ports 5901 and 6001  2
 netstat -tlnp | grep Xtightvnc
 netstat -tlnp | grep -E '5901|6001'
 telnet localhost 5901 < /dev/null
