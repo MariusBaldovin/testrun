@@ -13,6 +13,7 @@
 # limitations under the License.
 """NTP test module"""
 from test_module import TestModule
+from scapy.error import Scapy_Exception
 from scapy.all import rdpcap, IP, IPv6, NTP, UDP, Ether
 import os
 from collections import defaultdict
@@ -239,8 +240,13 @@ class NTPModule(TestModule):
   def _ntp_network_ntp_support(self):
     LOGGER.info('Running ntp.network.ntp_support')
     packet_capture = (rdpcap(STARTUP_CAPTURE_FILE) +
-                      rdpcap(MONITOR_CAPTURE_FILE) +
-                      rdpcap(NTP_SERVER_CAPTURE_FILE))
+                      rdpcap(MONITOR_CAPTURE_FILE))
+
+    try:
+      packet_capture += rdpcap(NTP_SERVER_CAPTURE_FILE)
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('ntp.pcap not found or empty, ignoring')
+      return None, False
 
     device_sends_ntp4 = False
     device_sends_ntp3 = False
@@ -277,8 +283,13 @@ class NTPModule(TestModule):
   def _ntp_network_ntp_dhcp(self):
     LOGGER.info('Running ntp.network.ntp_dhcp')
     packet_capture = (rdpcap(STARTUP_CAPTURE_FILE) +
-                      rdpcap(MONITOR_CAPTURE_FILE) +
-                      rdpcap(NTP_SERVER_CAPTURE_FILE))
+                      rdpcap(MONITOR_CAPTURE_FILE))
+
+    try:
+      packet_capture += rdpcap(NTP_SERVER_CAPTURE_FILE)
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('ntp.pcap not found or empty, ignoring')
+      return None, False
 
     device_sends_ntp = False
     ntp_to_local = False
