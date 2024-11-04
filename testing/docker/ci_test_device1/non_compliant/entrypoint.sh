@@ -19,7 +19,7 @@ if [ -f $PID_FILE ]; then
   rm -f $PID_FILE
 fi
 dhclient -v $INTF &
-DHCP_TPID=$(pgrep -f "dhclient.*$INTF")
+DHCP_TPID=$(pgrep -f "dhclient.*$INTF" | head -n 1)
 echo $DHCP_TPID
 
 ## SERVICES MODULE
@@ -37,39 +37,51 @@ check_service() {
 
 # Start FTP service 
 echo "Starting FTP on ports 20, 21"
-nc -nvlt -p 20 & check_service "FTP" 20
-nc -nvlt -p 21 & check_service "FTP" 21
+nc -nvlt -p 20 & sleep 3
+check_service "FTP" 20
+nc -nvlt -p 21 & sleep 3
+check_service "FTP" 21
 
 # Start Telnet service 
 echo "Starting Telnet on port 23"
-nc -nvlt -p 23 & check_service "Telnet" 23
+nc -nvlt -p 23 & sleep 3
+check_service "Telnet" 23
 
 # Start SMTP service
 echo "Starting SMTP on ports 25, 465, and 587"
-nc -nvlt -p 25 & check_service "SMTP" 25
-nc -nvlt -p 465 & check_service "SMTP" 465
-nc -nvlt -p 587 & check_service "SMTP" 587
+nc -nvlt -p 25 & sleep 3
+check_service "SMTP" 25
+nc -nvlt -p 465 & sleep 3
+check_service "SMTP" 465
+nc -nvlt -p 587 & sleep 3
+check_service "SMTP" 587
 
 # Start HTTP service 
 echo "Starting HTTP on port 80 "
-nc -nvlt -p 80 & check_service "HTTP" 80
+nc -nvlt -p 80 & sleep 3
+check_service "HTTP" 80
 
 # Start POP service 
 echo "Starting POP on ports 109 and 110 "
-nc -nvlt -p 109 & check_service "POP" 109
-nc -nvlt -p 110 & check_service "POP" 110
+nc -nvlt -p 109 & sleep 3
+check_service "POP" 109
+nc -nvlt -p 110 & sleep 3
+check_service "POP" 110
 
 # Start IMAP service 
 echo "Starting IMAP on port 143 "
-nc -nvlt -p 143 & check_service "IMAP" 143
+nc -nvlt -p 143 & sleep 3
+check_service "IMAP" 143
 
 # Start SNMPv2 service 
 echo "Starting SNMPv2 on ports 161"
-(while true; do echo -ne " \x02\x01\ " | nc -u -l -w 1 161; done) & check_service "SNMPv2" 161
+(while true; do echo -ne " \x02\x01\ " | nc -u -l -w 1 161; done) & sleep 3
+check_service "SNMPv2" 161
 
 # Start TFTP service 
 echo "Starting TFTP on port 69 "
-(while true; do echo -ne "\0\x05\0\0\x07\0" | nc -u -l -w 1 69; done) & check_service "TFTP" 69
+(while true; do echo -ne "\0\x05\0\0\x07\0" | nc -u -l -w 1 69; done) & sleep 3
+check_service "TFTP" 69
 
 # Start NTP service 
 echo "Starting NTP service"
@@ -120,7 +132,8 @@ echo "Sending DNS request to $DNS_SERVER"
 dig @$DNS_SERVER +short www.google.com || echo "DNS resolution failed"
 
 # Keep network monitoring
-(while true; do arping 10.10.10.1; sleep 10; done) &
+# (while true; do arping 10.10.10.1; sleep 10; done) &
+(while true; do arping -i $INTF 10.10.10.1; sleep 10; done) &
 (while true; do ip a | cat; sleep 10; done) &
 
 # Keep the script running
