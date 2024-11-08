@@ -147,7 +147,6 @@ echo "Sending DNS request to $DNS_SERVER"
 dig @$DNS_SERVER +short www.google.com || echo "DNS resolution failed"
 
 # Keep network monitoring
-# (while true; do arping 10.10.10.1; sleep 10; done) &
 (while true; do arping -i $INTF 10.10.10.1; sleep 10; done) &
 (while true; do ip a | cat; sleep 10; done) &
 
