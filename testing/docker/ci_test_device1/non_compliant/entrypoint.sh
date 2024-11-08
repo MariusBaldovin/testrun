@@ -104,7 +104,7 @@ ntpd -g -n -d &
 # Wait and verify if the NTP server is listening on UDP port 123
 sleep 3
 
-# Check if NTP is running on port 123 6
+# Check if NTP is running on port 123 7
 
 # Start VNC server
 
