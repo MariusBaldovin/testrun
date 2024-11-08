@@ -99,12 +99,10 @@ check_udp_service "TFTP" 69
 
 # Start the NTP server
 echo "Starting NTP service"
-ntpd -g -n -d &
-
-# Wait and verify if the NTP server is listening on UDP port 123
-sleep 3
+ntpd -g -n -d & sleep 3
 
 # Check if NTP is running on port 123
+check_udp_service "NTP" 123
 
 # Start VNC server
 
