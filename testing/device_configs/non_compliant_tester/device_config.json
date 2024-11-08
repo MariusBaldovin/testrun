@@ -38,16 +38,16 @@
       "enabled": true
     },
     "ntp": {
-      "enabled": true
+      "enabled": false
     },
     "tls": {
       "enabled": false
     },
     "connection": {
-      "enabled": true
+      "enabled": false
     },
     "dns": {
-      "enabled": true
+      "enabled": false
     }  
   }
 }
