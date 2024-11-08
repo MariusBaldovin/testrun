@@ -99,7 +99,7 @@ check_udp_service "TFTP" 69
 
 # Start the NTP server
 echo "Starting NTP service"
-ntpd -g &
+ntpd -g -n -d &
 
 # Wait and verify if the NTP server is listening on UDP port 123
 sleep 3
