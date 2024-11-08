@@ -31,7 +31,7 @@ check_tcp_service() {
   if netstat -tln | grep -q ":$port"; then
       echo "$service started on TCP port: $port"
   else
-      echo "Warning: $service failed to start on TCP port $port"
+      echo "$service failed to start on TCP port $port"
   fi
 }
 
@@ -42,7 +42,7 @@ check_udp_service() {
   if ss -uln | grep -q ":$port"; then
     echo "$service started on UDP port: $port"
   else
-    echo "Warning: $service failed to start on UDP port $port"
+    echo "$service failed to start on UDP port $port"
   fi
 }
 
@@ -99,7 +99,6 @@ check_udp_service "TFTP" 69
 
 # Start the NTP server
 echo "Starting NTP service"
-
 ntpd -g &
 
 # Wait and verify if the NTP server is listening on UDP port 123
