@@ -137,8 +137,6 @@ echo "VNC server started on ports: $VNC_PORTS"
 # Check VNC server on ports 5901 and 6001
 netstat -tlnp | grep Xtightvnc
 netstat -tlnp | grep -E '5901|6001'
-# telnet localhost 5901 < /dev/null
-# telnet localhost 6001 < /dev/null
 
 ## DNS MODULE
 
