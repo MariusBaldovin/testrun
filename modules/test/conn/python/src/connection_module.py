@@ -397,15 +397,9 @@ class ConnectionModule(TestModule):
     result = None
     description = ''
     dev_iface = os.getenv('DEV_IFACE')
-    # try:
-    #   iface_status = self.host_client.check_interface_status(dev_iface)
-    # except Exception:
-    #   LOGGER.error('Unable to connect to RPC server')
-    #   return 'Error', 'Failed to make RPC call to check interface status'
+
     try:
       iface_status = self.host_client.check_interface_status(dev_iface)
-      print(f'iface status code is {iface_status.code} and status is {iface_status.status}')
-
       if iface_status.code == 200:
         LOGGER.info('Successfully resolved iface status')
         if iface_status.status:
@@ -469,7 +463,9 @@ class ConnectionModule(TestModule):
     except Exception:
       LOGGER.error('Unable to connect to RPC server')
       result = 'Error'
-      description = 'Check if UFW firewall is enabled and blocking the ports'
+      description = ('Check if UFW firewall is enabled and blocking the ports' +
+                     'Disable the UFW firewall and re-run the test'
+      )
 
     return result, description
 
@@ -563,11 +559,13 @@ class ConnectionModule(TestModule):
       except Exception:
         LOGGER.error('Unable to connect to RPC server')
         result = 'Error'
-        description = 'Check if UFW firewall is enabled and blocking the ports'
+        description = ('Check if UFW firewall is enabled and blocking' +
+              'the ports. Disable the UFW firewall and re-run the test'
+        )
     else:
       result = 'Error'
       description = 'Failed to configure network for test'
-      
+
     if reserved_lease:
       self._dhcp_util.delete_reserved_lease(self._device_mac)
 
