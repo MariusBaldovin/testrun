@@ -25,7 +25,6 @@ from host.client import Client as HostClient
 from dhcp_util import DHCPUtil
 from port_stats_util import PortStatsUtil
 import json
-import grpc
 
 LOG_NAME = 'test_connection'
 OUI_FILE = '/usr/local/etc/oui.txt'
@@ -398,14 +397,20 @@ class ConnectionModule(TestModule):
     result = None
     description = ''
     dev_iface = os.getenv('DEV_IFACE')
-    iface_status = self.host_client.check_interface_status(dev_iface)
-
+    # try:
+    #   iface_status = self.host_client.check_interface_status(dev_iface)
+    # except Exception:
+    #   LOGGER.error('Unable to connect to RPC server')
+    #   return 'Error', 'Failed to make RPC call to check interface status'
     try:
+      iface_status = self.host_client.check_interface_status(dev_iface)
+      print(f'iface status code is {iface_status.code} and status is {iface_status.status}')
+
       if iface_status.code == 200:
         LOGGER.info('Successfully resolved iface status')
         if iface_status.status:
           lease = self._dhcp_util.get_cur_lease(mac_address=self._device_mac,
-                                           timeout=self._lease_wait_time_sec)
+                                            timeout=self._lease_wait_time_sec)
           if lease is not None:
             LOGGER.info('Current device lease resolved')
             if self._dhcp_util.is_lease_active(lease):
@@ -461,17 +466,10 @@ class ConnectionModule(TestModule):
         result = 'Error'
         description = 'Device interface could not be resolved'
 
-    except grpc.RpcError as e:
-      LOGGER.error(f'grpc connection failed: {e}')
-      LOGGER.error('Check if the UFW is enabled and blocking the ports')
+    except Exception:
+      LOGGER.error('Unable to connect to RPC server')
       result = 'Error'
-      description = 'Connection failure due to potential UFW firewall settings'
-
-    except Exception as e:
-      LOGGER.error('An unexpected error occurred: %s', str(e))
-      result = 'Error'
-      description = 'An unexpected error occurred'
-
+      description = 'Check if UFW firewall is enabled and blocking the ports'
 
     return result, description
 
@@ -482,86 +480,94 @@ class ConnectionModule(TestModule):
     reserved_lease = None
     dev_iface = os.getenv('DEV_IFACE')
     if self._dhcp_util.setup_single_dhcp_server():
-      iface_status = self.host_client.check_interface_status(dev_iface)
-      if iface_status.code == 200:
-        LOGGER.info('Successfully resolved iface status')
-        if iface_status.status:
-          lease = self._dhcp_util.get_cur_lease(
-              mac_address=self._device_mac, timeout=self._lease_wait_time_sec)
-          if lease is not None:
-            LOGGER.info('Current device lease resolved')
-            if self._dhcp_util.is_lease_active(lease):
+      try:
+        iface_status = self.host_client.check_interface_status(dev_iface)
+        if iface_status.code == 200:
+          LOGGER.info('Successfully resolved iface status')
+          if iface_status.status:
+            lease = self._dhcp_util.get_cur_lease(
+                mac_address=self._device_mac, timeout=self._lease_wait_time_sec)
+            if lease is not None:
+              LOGGER.info('Current device lease resolved')
+              if self._dhcp_util.is_lease_active(lease):
 
-              # Add a reserved lease with a different IP
-              ip_address = '10.10.10.30'
-              reserved_lease = self._dhcp_util.add_reserved_lease(
-                  lease['hostname'], self._device_mac, ip_address)
+                # Add a reserved lease with a different IP
+                ip_address = '10.10.10.30'
+                reserved_lease = self._dhcp_util.add_reserved_lease(
+                    lease['hostname'], self._device_mac, ip_address)
 
-              # Disable the device interface
-              iface_down = self.host_client.set_iface_down(dev_iface)
-              if iface_down:
-                LOGGER.info('Device interface set to down state')
+                # Disable the device interface
+                iface_down = self.host_client.set_iface_down(dev_iface)
+                if iface_down:
+                  LOGGER.info('Device interface set to down state')
 
-                # Wait for the lease to expire
-                self._dhcp_util.wait_for_lease_expire(lease,
-                                                      self._lease_wait_time_sec)
+                  # Wait for the lease to expire
+                  self._dhcp_util.wait_for_lease_expire(lease,
+                                                    self._lease_wait_time_sec)
 
-                if reserved_lease:
-                  # Wait an additonal 10 seconds to better test a true
-                  # disconnect state
-                  LOGGER.info(
-                      'Waiting 10 seconds before bringing iface back up')
-                  time.sleep(10)
+                  if reserved_lease:
+                    # Wait an additonal 10 seconds to better test a true
+                    # disconnect state
+                    LOGGER.info(
+                        'Waiting 10 seconds before bringing iface back up')
+                    time.sleep(10)
 
-                  # Enable the device interface
-                  iface_up = self.host_client.set_iface_up(dev_iface)
-                  if iface_up:
-                    LOGGER.info('Device interface set to up state')
-                    # Confirm device receives a new lease
-                    reserved_lease_accepted = False
-                    LOGGER.info('Checking device accepted new ip')
-                    for _ in range(5):
-                      LOGGER.info('Pinging device at IP: ' + ip_address)
-                      if self._ping(ip_address):
-                        LOGGER.debug('Ping success')
-                        LOGGER.debug(
-                            'Reserved lease confirmed active in device')
-                        reserved_lease_accepted = True
-                        break
+                    # Enable the device interface
+                    iface_up = self.host_client.set_iface_up(dev_iface)
+                    if iface_up:
+                      LOGGER.info('Device interface set to up state')
+                      # Confirm device receives a new lease
+                      reserved_lease_accepted = False
+                      LOGGER.info('Checking device accepted new ip')
+                      for _ in range(5):
+                        LOGGER.info('Pinging device at IP: ' + ip_address)
+                        if self._ping(ip_address):
+                          LOGGER.debug('Ping success')
+                          LOGGER.debug(
+                              'Reserved lease confirmed active in device')
+                          reserved_lease_accepted = True
+                          break
+                        else:
+                          LOGGER.info('Device did not respond to ping')
+                          time.sleep(5)  # Wait 5 seconds before trying again
+
+                      if reserved_lease_accepted:
+                        result = True
+                        description = ('Device received expected IP address '
+                                      'after disconnect')
                       else:
-                        LOGGER.info('Device did not respond to ping')
-                        time.sleep(5)  # Wait 5 seconds before trying again
-
-                    if reserved_lease_accepted:
-                      result = True
-                      description = ('Device received expected IP address '
-                                     'after disconnect')
-                    else:
-                      result = False
-                      description = (
+                        result = False
+                        description = (
                           'Could not confirm DHCP lease active after disconnect'
-                      )
+                        )
+                    else:
+                      result = 'Error'
+                      description = 'Failed to set device interface to up state'
                   else:
                     result = 'Error'
-                    description = 'Failed to set device interface to up state'
+                    description = (
+                      'Failed to set reserved address in DHCP server'
+                    )
                 else:
                   result = 'Error'
-                  description = 'Failed to set reserved address in DHCP server'
-              else:
-                result = 'Error'
-                description = 'Failed to set device interface to down state'
+                  description = 'Failed to set device interface to down state'
+            else:
+              result = 'Error'
+              description = 'No active lease available for device'
           else:
             result = 'Error'
-            description = 'No active lease available for device'
+            description = 'Device interface is down'
         else:
           result = 'Error'
-          description = 'Device interface is down'
-      else:
+          description = 'Device interface could not be resolved'
+      except Exception:
+        LOGGER.error('Unable to connect to RPC server')
         result = 'Error'
-        description = 'Device interface could not be resolved'
+        description = 'Check if UFW firewall is enabled and blocking the ports'
     else:
       result = 'Error'
       description = 'Failed to configure network for test'
+      
     if reserved_lease:
       self._dhcp_util.delete_reserved_lease(self._device_mac)
 
