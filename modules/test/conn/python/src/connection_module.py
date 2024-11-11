@@ -463,10 +463,9 @@ class ConnectionModule(TestModule):
     except Exception:
       LOGGER.error('Unable to connect to RPC server')
       result = 'Error'
-      description = ('Check if UFW firewall is enabled and blocking the ports' +
-                     'Disable the UFW firewall and re-run the test'
+      description = (
+        'Check if UFW firewall is enabled and blocking the port 5001'
       )
-
     return result, description
 
   def _connection_dhcp_disconnect_ip_change(self):
@@ -559,8 +558,8 @@ class ConnectionModule(TestModule):
       except Exception:
         LOGGER.error('Unable to connect to RPC server')
         result = 'Error'
-        description = ('Check if UFW firewall is enabled and blocking' +
-              'the ports. Disable the UFW firewall and re-run the test'
+        description = (
+        'Check if UFW firewall is enabled and blocking the port 5001'
         )
     else:
       result = 'Error'
