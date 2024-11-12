@@ -194,7 +194,7 @@ class ServicesModule(TestModule):
       self._scan_results.update(self._scan_tcp_results)
     if self._scan_udp_results is not None:
       self._scan_results.update(self._scan_udp_results)
-  # 8
+  # 9
   def _scan_tcp_ports(self):
     max_port = 65535
     LOGGER.info('Running nmap TCP port scan')
