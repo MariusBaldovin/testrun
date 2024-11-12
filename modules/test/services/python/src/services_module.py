@@ -196,7 +196,7 @@ class ServicesModule(TestModule):
       self._scan_results.update(self._scan_udp_results)
 
   def _scan_tcp_ports(self):
-    max_port = 10000
+    max_port = 65535
     LOGGER.info('Running nmap TCP port scan')
     nmap_results = util.run_command( # pylint: disable=E1120
         f'''nmap --open -sT -sV -Pn -v -p 1-{max_port}
