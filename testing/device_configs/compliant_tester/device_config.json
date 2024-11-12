@@ -35,10 +35,10 @@
       "enabled": false
     },
     "services": {
-      "enabled": false
+      "enabled": true
     },
     "ntp": {
-      "enabled": false
+      "enabled": true
     },
     "tls": {
       "enabled": false
@@ -47,7 +47,7 @@
       "enabled": true
     },
     "dns": {
-      "enabled": false
+      "enabled": true
     }
   } 
 }
