@@ -14,7 +14,6 @@
 """ Test assertions for CI testing of tests """
 
 # pylint: disable=redefined-outer-name
-#10
 import json
 import pytest
 import os
