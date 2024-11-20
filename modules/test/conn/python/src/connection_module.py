@@ -409,17 +409,6 @@ class ConnectionModule(TestModule):
             LOGGER.info('Current device lease resolved')
             if self._dhcp_util.is_lease_active(lease):
 
-    try:
-      iface_status = self.host_client.check_interface_status(dev_iface)
-      if iface_status.code == 200:
-        LOGGER.info('Successfully resolved iface status')
-        if iface_status.status:
-          lease = self._dhcp_util.get_cur_lease(mac_address=self._device_mac,
-                                            timeout=self._lease_wait_time_sec)
-          if lease is not None:
-            LOGGER.info('Current device lease resolved')
-            if self._dhcp_util.is_lease_active(lease):
-
               # Disable the device interface
               iface_down = self.host_client.set_iface_down(dev_iface)
               if iface_down:
