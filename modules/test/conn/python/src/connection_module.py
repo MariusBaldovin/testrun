@@ -409,6 +409,21 @@ class ConnectionModule(TestModule):
             LOGGER.info('Current device lease resolved')
             if self._dhcp_util.is_lease_active(lease):
 
+    try:
+      iface_status = self.host_client.check_interface_status(dev_iface)
+      if iface_status.code == 200:
+        LOGGER.info('Successfully resolved iface status')
+        if iface_status.status:
+          lease = self._dhcp_util.get_cur_lease(mac_address=self._device_mac,
+                                            timeout=self._lease_wait_time_sec)
+          if lease is not None:
+            LOGGER.info('Current device lease resolved')
+            if self._dhcp_util.is_lease_active(lease):
+
+              # Disable the device interface
+              iface_down = self.host_client.set_iface_down(dev_iface)
+              if iface_down:
+                LOGGER.info('Device interface set to down state')
               # Disable the device interface
               iface_down = self.host_client.set_iface_down(dev_iface)
               if iface_down:
@@ -417,12 +432,23 @@ class ConnectionModule(TestModule):
                 # Wait for the lease to expire
                 self._dhcp_util.wait_for_lease_expire(lease,
                                                       self._lease_wait_time_sec)
+                # Wait for the lease to expire
+                self._dhcp_util.wait_for_lease_expire(lease,
+                                                      self._lease_wait_time_sec)
 
                 # Wait an additonal 10 seconds to better test a true disconnect
                 # state
                 LOGGER.info('Waiting 10 seconds before bringing iface back up')
                 time.sleep(10)
+                # Wait an additonal 10 seconds to better test a true disconnect
+                # state
+                LOGGER.info('Waiting 10 seconds before bringing iface back up')
+                time.sleep(10)
 
+                # Enable the device interface
+                iface_up = self.host_client.set_iface_up(dev_iface)
+                if iface_up:
+                  LOGGER.info('Device interface set to up state')
                 # Enable the device interface
                 iface_up = self.host_client.set_iface_up(dev_iface)
                 if iface_up:
@@ -591,7 +617,7 @@ class ConnectionModule(TestModule):
     LOGGER.info('Running connection.ipv6_slaac')
     result = None
 
-    slac_test, sends_ipv6 = self._has_slaac_addres()
+    slac_test, sends_ipv6 = self._has_slaac_address()
     if slac_test:
       result = True, f'Device has formed SLAAC address {self._device_ipv6_addr}'
     elif slac_test is None:
@@ -605,7 +631,7 @@ class ConnectionModule(TestModule):
         result = False, 'Device does not support IPv6'
     return result
 
-  def _has_slaac_addres(self):
+  def _has_slaac_address(self):
     packet_capture = (rdpcap(self.startup_capture_file) +
                       rdpcap(self.monitor_capture_file))
 
