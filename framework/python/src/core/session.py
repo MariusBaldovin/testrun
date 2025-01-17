@@ -38,6 +38,7 @@ API_URL_KEY = 'api_url'
 API_PORT_KEY = 'api_port'
 MAX_DEVICE_REPORTS_KEY = 'max_device_reports'
 ORG_NAME_KEY = 'org_name'
+TEST_CONFIG_KEY = 'test_modules'
 CERTS_PATH = 'local/root_certs'
 CONFIG_FILE_PATH = 'local/system.json'
 STATUS_TOPIC = 'status'
@@ -155,7 +156,7 @@ class TestrunSession():
 
   def start(self):
     self.reset()
-    self._status = TestrunStatus.WAITING_FOR_DEVICE
+    self._status = TestrunStatus.STARTING
     self._started = datetime.datetime.now()
 
   def get_started(self):
@@ -239,6 +240,11 @@ class TestrunSession():
       if ORG_NAME_KEY in config_file_json:
         self._config[ORG_NAME_KEY] = config_file_json.get(
           ORG_NAME_KEY
+        )
+
+      if TEST_CONFIG_KEY in config_file_json:
+        self._config[TEST_CONFIG_KEY] = config_file_json.get(
+          TEST_CONFIG_KEY
         )
 
   def _load_version(self):
@@ -450,10 +456,12 @@ class TestrunSession():
     if not updated:
       self._results.append(result)
 
-  def set_test_result_error(self, result):
+  def set_test_result_error(self, result, description=None):
     """Set test result error"""
     result.result = TestResult.ERROR
     result.recommendations = None
+    if description is not None:
+      result.description = description
     self._results.append(result)
 
   def add_module_report(self, module_report):
@@ -674,6 +682,15 @@ class TestrunSession():
     elif len(profile_json.get('name').strip()) == 0:
       LOGGER.error('Name field left empty')
       return False
+
+    # Check if profile name has special characters
+    for field in ['name', 'rename']:
+      profile_name = profile_json.get(field)
+      if profile_name:
+        for char in profile_name:
+          if char in r"\<>?/:;@''][=^":
+            LOGGER.error('Profile name should not contain special characters')
+            return False
 
     # Error handling if 'questions' not in request
     if 'questions' not in profile_json and valid:

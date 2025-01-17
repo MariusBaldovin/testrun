@@ -120,6 +120,8 @@ class TestOrchestrator:
       if not self._is_module_enabled(module, device):
         continue
 
+      num_tests = 0
+
       # Add module to list of modules to run
       test_modules.append(module)
 
@@ -127,6 +129,10 @@ class TestOrchestrator:
 
         # Duplicate test obj so we don't alter the source
         test_copy = copy.deepcopy(test)
+
+        # Do not add test if it is not enabled
+        if not self._is_test_enabled(test_copy.name, device):
+          continue
 
         # Set result to Not Started
         test_copy.result = TestResult.NOT_STARTED
@@ -143,10 +149,13 @@ class TestOrchestrator:
         # Add test result to the session
         self.get_session().add_test_result(test_copy)
 
-      # Increment number of tests that will be run
-      self.get_session().add_total_tests(len(module.tests))
+        # Increment number of tests being run by this module
+        num_tests += 1
 
-    # Store enabled test modules in the TestsOrchectrator object
+      # Increment number of tests that will be run
+      self.get_session().add_total_tests(num_tests)
+
+    # Store enabled test modules in the TestOrchectrator object
     self._test_modules_running = test_modules
     self._current_module = 0
 
@@ -339,7 +348,7 @@ class TestOrchestrator:
 
     return completed_results_dir
 
-  def zip_results(self, device, timestamp, profile):
+  def zip_results(self, device, timestamp: str, profile):
 
     try:
       LOGGER.debug("Archiving test results")
@@ -347,6 +356,49 @@ class TestOrchestrator:
       src_path = os.path.join(
           LOCAL_DEVICE_REPORTS.replace("{device_folder}", device.device_folder),
           timestamp)
+
+      # Report file path
+      report_path = os.path.join(
+        LOCAL_DEVICE_REPORTS.replace("{device_folder}", device.device_folder),
+        timestamp, "test", device.mac_addr.replace(":", ""))
+
+      # Parse string timestamp
+      date_timestamp: datetime.datetime = datetime.strptime(
+      timestamp, "%Y-%m-%dT%H:%M:%S")
+
+      # Find the report
+      test_report = None
+      for report in device.get_reports():
+        if report.get_started() == date_timestamp:
+          test_report = report
+
+      # This should not happen as the timestamp is checked in api.py first
+      if test_report is None:
+        return None
+
+      # Copy the original report for comparison
+      original_report = copy.deepcopy(test_report)
+
+      # Update the report with 'additional_info' field
+      test_report.update_device_profile(device.additional_info)
+
+      # Overwrite report only if additional_info has been updated
+      if original_report.to_json() != test_report.to_json():
+
+        # Write the json report
+        with open(os.path.join(report_path, "report.json"),
+                  "w", encoding="utf-8") as f:
+          json.dump(test_report.to_json(), f, indent=2)
+
+        # Write the html report
+        with open(os.path.join(report_path, "report.html"),
+                  "w", encoding="utf-8") as f:
+          f.write(test_report.to_html())
+
+        # Write the pdf report
+        with open(os.path.join(report_path, "report.pdf"),
+                  "wb") as f:
+          f.write(test_report.to_pdf().getvalue())
 
       # Define temp directory to store files before zipping
       results_dir = os.path.join(f"/tmp/testrun/{time.time()}")
@@ -399,6 +451,7 @@ class TestOrchestrator:
 
     # Enable module as fallback
     enabled = True
+
     if device.test_modules is not None:
       test_modules = device.test_modules
       if module.name in test_modules:
@@ -409,6 +462,13 @@ class TestOrchestrator:
         enabled = module.enabled
 
     return enabled
+
+  def _is_test_enabled(self, test, device):
+
+    test_pack_name = device.test_pack
+    test_pack = self.get_test_pack(test_pack_name)
+
+    return test_pack.get_test(test) is not None
 
   def _run_test_module(self, module):
     """Start the test container and extract the results."""
@@ -441,7 +501,9 @@ class TestOrchestrator:
       if hasattr(test_copy, "recommendations"):
         test_copy.recommendations = None
 
-      self.get_session().add_test_result(test_copy)
+      # Only add/update the test if it is enabled
+      if self._is_test_enabled(test_copy.name, device):
+        self.get_session().add_test_result(test_copy)
 
     # Start the test module
     module.start(device)
@@ -637,7 +699,10 @@ class TestOrchestrator:
       module_conf_file = os.path.join(self._root_path, modules_dir, module_dir,
                                       MODULE_CONFIG)
 
-      module = TestModule(module_conf_file, self.get_session(), extra_hosts)
+      module = TestModule(module_conf_file,
+                          self,
+                          self.get_session(),
+                          extra_hosts)
       if module.depends_on is not None:
         self._load_test_module(module.depends_on)
       self._test_modules.append(module)
@@ -697,5 +762,6 @@ class TestOrchestrator:
       start_idx = current_test if i == self._current_module else 0
       for j in range(start_idx, len(self._test_modules_running[i].tests)):
         self.get_session().set_test_result_error(
-          self._test_modules_running[i].tests[j]
+          self._test_modules_running[i].tests[j],
+          "Test did not run, the device was disconnected"
           )

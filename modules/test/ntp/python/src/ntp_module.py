@@ -14,6 +14,7 @@
 """NTP test module"""
 from test_module import TestModule
 from scapy.all import rdpcap, IP, IPv6, NTP, UDP, Ether
+from scapy.error import Scapy_Exception
 import os
 from collections import defaultdict
 
@@ -118,7 +119,7 @@ class NTPModule(TestModule):
 
     if total_requests + total_responses > 0:
       table_content = '''
-        <table class="module-data">
+        <table class="module-data" style="width:100%;">
           <thead>
             <tr>
               <th>Source</th>
@@ -185,8 +186,12 @@ class NTPModule(TestModule):
 
     # Read the pcap files
     packets = (rdpcap(self.startup_capture_file) +
-               rdpcap(self.monitor_capture_file) +
-               rdpcap(self.ntp_server_capture_file))
+               rdpcap(self.monitor_capture_file))
+
+    try:
+      packets += rdpcap(self.ntp_server_capture_file)
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('ntp.pcap not found or empty, ignoring')
 
     # Iterate through NTP packets
     for packet in packets:
@@ -238,9 +243,15 @@ class NTPModule(TestModule):
 
   def _ntp_network_ntp_support(self):
     LOGGER.info('Running ntp.network.ntp_support')
-    packet_capture = (rdpcap(STARTUP_CAPTURE_FILE) +
-                      rdpcap(MONITOR_CAPTURE_FILE) +
-                      rdpcap(NTP_SERVER_CAPTURE_FILE))
+
+    # Read the pcap files
+    packet_capture = (rdpcap(self.startup_capture_file) +
+               rdpcap(self.monitor_capture_file))
+
+    try:
+      packet_capture += rdpcap(self.ntp_server_capture_file)
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('ntp.pcap not found or empty, ignoring')
 
     device_sends_ntp4 = False
     device_sends_ntp3 = False
@@ -265,7 +276,7 @@ class NTPModule(TestModule):
     result = False, 'Device has not sent any NTP requests'
 
     if device_sends_ntp3 and device_sends_ntp4:
-      result = False, ('Device sent NTPv3 and NTPv4 packets')
+      result = True, ('Device sent NTPv3 and NTPv4 packets')
     elif device_sends_ntp3:
       result = False, ('Device sent NTPv3 packets')
     elif device_sends_ntp4:
@@ -276,9 +287,15 @@ class NTPModule(TestModule):
 
   def _ntp_network_ntp_dhcp(self):
     LOGGER.info('Running ntp.network.ntp_dhcp')
-    packet_capture = (rdpcap(STARTUP_CAPTURE_FILE) +
-                      rdpcap(MONITOR_CAPTURE_FILE) +
-                      rdpcap(NTP_SERVER_CAPTURE_FILE))
+
+    # Read the pcap files
+    packet_capture = (rdpcap(self.startup_capture_file) +
+               rdpcap(self.monitor_capture_file))
+
+    try:
+      packet_capture += rdpcap(self.ntp_server_capture_file)
+    except (FileNotFoundError, Scapy_Exception):
+      LOGGER.error('ntp.pcap not found or empty, ignoring')
 
     device_sends_ntp = False
     ntp_to_local = False
